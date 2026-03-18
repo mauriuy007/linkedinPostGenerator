@@ -1,0 +1,24 @@
+{
+  "name": "linkedinpostgenerator",
+  "version": "1.0.0",
+  "description": "node+react+linkedinApi project",
+  "keywords": [
+    "linkedin",
+    "post",
+    "generator",
+    "node",
+    "react",
+    "linkedinApi"
+  ],
+  "license": "ISC",
+  "author": "Mauricio Parodi",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
