@@ -10,3 +10,5 @@ const postSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
   published: { type: Boolean, default: false }
 });
+
+export const Post = mongoose.model('Post', postSchema);

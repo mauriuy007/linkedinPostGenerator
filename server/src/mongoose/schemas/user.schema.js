@@ -9,3 +9,5 @@ const userSchema = new Schema({
   email: { type: String, required: false },
   createdAt: { type: Date, default: Date.now }
 });
+
+export const User = mongoose.model('User', userSchema);
