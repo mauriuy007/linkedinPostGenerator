@@ -1,6 +1,6 @@
 import { UserError } from '../errors/UserError.js';
 export class User {
-  constructor({ username, password, email = null, createdAt = new Date() }) {
+  constructor({ id,username, password, email = null, createdAt = new Date() }) {
     this.username = username;
     this.password = password;
     this.email = email;
