@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { UserError } from "../../errors/UserError.js";
 
 const { Schema } = mongoose;
 
@@ -14,7 +15,7 @@ userSchema.statics.createUser = async function ({ username, password, email }) {
   const existingUser = await this.findOne({ username });
 
   if (existingUser) {
-    throw new Error('Username already exists');
+    throw new UserError('Username already exists', 409);
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);

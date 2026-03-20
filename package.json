@@ -17,7 +17,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/src/server.js",
-    "dev": "nodemon server/src/server.js"
+    "dev": "nodemon server/src/server.js",
+    "client:dev": "vite --config client/vite.config.js",
+    "client:build": "vite build --config client/vite.config.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -25,9 +27,13 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.1",
-    "openai": "^6.32.0"
+    "openai": "^6.32.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@vitejs/plugin-react": "^5.0.2",
+    "nodemon": "^3.1.14",
+    "vite": "^7.1.5"
   }
 }
