@@ -1,6 +1,7 @@
 import {User} from '../models/User.js';
 import { UserError } from '../errors/UserError.js';
 import {generateToken} from '../utils/jwtGenerator.js';
+import {User as UserModel} from '../mongoose/schemas/user.schema.js';
 
 export const login = async (req, res) => {
   const { username, password } = req.body;
@@ -19,17 +20,24 @@ export const login = async (req, res) => {
 
 
 export const register = async (req, res) => {
-  const { username, password, email } = req.body;
+  const { username, password: rawPassword, passoword, email } = req.body ?? {};
+  const password = rawPassword ?? passoword;
   try {
-
+    console.log('Received registration data:', {
+      contentType: req.headers['content-type'],
+      body: req.body,
+      username,
+      email,
+      password
+    });
     User.validateUsername(username);
     User.validatePassword(password);
     User.validateEmail(email);
+    const user = await UserModel.createUser({ username, password, email });
     res.json({
-    message: 'Login endpoint working',
-    username,
-    email,
-    password
+    message: 'User created successfully',
+    username: user.username,
+    email: user.email
     });
 }
 catch (error) {

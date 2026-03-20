@@ -20,7 +20,7 @@ export class User {
   }
 
   static validateEmail(email) {
-    if (email !== null && !email.includes('@')) {
+    if (email != null && !email.includes('@')) {
       throw new UserError('Email is not valid');
     }
   }
