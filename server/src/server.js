@@ -7,7 +7,13 @@ import authRoutes from './routes/auth.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+const envPaths = [
+  path.resolve(__dirname, '../.env'),
+  path.resolve(__dirname, '../../.env')
+];
+
+dotenv.config({ path: envPaths });
 
 const app = express();
 const PORT = 3000;
@@ -19,13 +25,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 
+const connectToMongoIfConfigured = async () => {
+  if (!MONGODB_URI) {
+    console.warn('MongoDB is not configured. Starting server without database connection.');
+    return;
+  }
+
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection failed. Starting server without database connection:', error.message);
+  }
+};
+
 const startServer = async () => {
   try {
-    if (!MONGODB_URI) {
-      throw new Error('MONGODB_URI is not configured');
-    }
-
-    await mongoose.connect(MONGODB_URI);
+    await connectToMongoIfConfigured();
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
