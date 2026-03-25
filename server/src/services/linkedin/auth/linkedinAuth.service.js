@@ -6,6 +6,22 @@ const LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo';
 const STATE_COOKIE_NAME = 'linkedin_oauth_state';
 const STATE_COOKIE_MAX_AGE_SECONDS = 10 * 60;
 
+const getFrontendUrl = () => {
+  return process.env.FRONTEND_URL ?? 'http://localhost:5173';
+};
+
+const buildFrontendRedirectUrl = (pathname = '/', params = {}) => {
+  const url = new URL(pathname, getFrontendUrl());
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return url.toString();
+};
+
 const getRequiredEnv = () => {
   const clientId = process.env.LINKEDIN_CLIENT_ID;
   const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
@@ -103,19 +119,30 @@ export const linkedinCallback = async (req, res) => {
   res.setHeader('Set-Cookie', clearStateCookie(req));
 
   if (error) {
-    return res.status(400).json({
-      message: 'LinkedIn authorization failed',
-      error,
-      errorDescription
-    });
+    return res.redirect(
+      buildFrontendRedirectUrl('/', {
+        linkedin: 'error',
+        reason: errorDescription ?? error
+      })
+    );
   }
 
   if (!code) {
-    return res.status(400).json({ message: 'No authorization code received from LinkedIn' });
+    return res.redirect(
+      buildFrontendRedirectUrl('/', {
+        linkedin: 'error',
+        reason: 'No se recibio el codigo de autorizacion de LinkedIn'
+      })
+    );
   }
 
   if (!state || !storedState || state !== storedState) {
-    return res.status(400).json({ message: 'Invalid OAuth state' });
+    return res.redirect(
+      buildFrontendRedirectUrl('/', {
+        linkedin: 'error',
+        reason: 'Estado OAuth invalido'
+      })
+    );
   }
 
   try {
@@ -139,10 +166,12 @@ export const linkedinCallback = async (req, res) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok || !tokenData.access_token) {
-      return res.status(502).json({
-        message: 'Failed to exchange authorization code with LinkedIn',
-        details: tokenData
-      });
+      return res.redirect(
+        buildFrontendRedirectUrl('/', {
+          linkedin: 'error',
+          reason: 'No se pudo validar el codigo con LinkedIn'
+        })
+      );
     }
 
     const accessToken = tokenData.access_token;
@@ -154,26 +183,36 @@ export const linkedinCallback = async (req, res) => {
     const userData = await userResponse.json();
 
     if (!userResponse.ok || !userData.sub) {
-      return res.status(502).json({
-        message: 'Failed to fetch LinkedIn user profile',
-        details: userData
-      });
+      return res.redirect(
+        buildFrontendRedirectUrl('/', {
+          linkedin: 'error',
+          reason: 'No se pudo obtener el perfil de LinkedIn'
+        })
+      );
     }
 
     const linkedinId = userData.sub;
-    const personUrn = `urn:li:person:${linkedinId}`;
+    const displayName =
+      userData.name ??
+      [userData.given_name, userData.family_name].filter(Boolean).join(' ') ??
+      '';
 
-    return res.status(200).json({
-      message: 'LinkedIn login successful',
-      linkedin: {
-        accessToken,
+    console.log('LinkedIn login successful for:', linkedinId);
+
+    return res.redirect(
+      buildFrontendRedirectUrl('/', {
+        linkedin: 'ok',
         linkedinId,
-        personUrn,
-        profile: userData
-      }
-    });
+        name: displayName
+      })
+    );
   } catch (error) {
     console.error('Error during LinkedIn auth:', error);
-    return res.status(500).json({ message: 'Error during LinkedIn auth' });
+    return res.redirect(
+      buildFrontendRedirectUrl('/', {
+        linkedin: 'error',
+        reason: 'Error interno durante la autenticacion con LinkedIn'
+      })
+    );
   }
 };

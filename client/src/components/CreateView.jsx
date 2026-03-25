@@ -1,4 +1,5 @@
 export default function CreateView({
+  authMessage,
   prompt,
   selectedImage,
   onBack,
@@ -14,6 +15,7 @@ export default function CreateView({
           Subí una imagen y sumá contexto para después generar un post listo para
           LinkedIn.
         </p>
+        {authMessage ? <p className="app__notice app__notice--success">{authMessage}</p> : null}
 
         <div className="create__form">
           <div className="create__upload">
