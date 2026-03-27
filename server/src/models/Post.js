@@ -8,12 +8,14 @@ export class Post {
     authorUsername,
     createdAt = new Date(),
     published = false,
+    imageUrl
   }) {
     this.title = title;
     this.content = content;
     this.authorUsername = authorUsername;
     this.createdAt = createdAt;
     this.published = published;
+    this.imageUrl = imageUrl;
   }
 
   static validateTitle = title => {
