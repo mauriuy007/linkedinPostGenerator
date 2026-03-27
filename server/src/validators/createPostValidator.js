@@ -1,4 +1,4 @@
-import {joi} from 'joi';
+import Joi from 'joi';
 
 const createPostValidator = Joi.object({
     title: Joi.string().min(5).max(100).required(),
@@ -7,4 +7,6 @@ const createPostValidator = Joi.object({
     createdAt: Joi.date().default(() => new Date()),
     published: Joi.boolean().default(false),
     imageUrl: Joi.string().uri().optional()
-})
+});
+
+export default createPostValidator;

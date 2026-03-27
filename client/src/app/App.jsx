@@ -7,6 +7,8 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [prompt, setPrompt] = useState('');
   const [authMessage, setAuthMessage] = useState('');
+  const [submitMessage, setSubmitMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
   useEffect(() => {
@@ -45,6 +47,52 @@ export default function App() {
   const handleBackToHome = () => {
     setView('home');
     setAuthMessage('');
+    setSubmitMessage('');
+  };
+
+  const handleGeneratePost = async () => {
+    const trimmedPrompt = prompt.trim();
+
+    if (!trimmedPrompt) {
+      setSubmitMessage('Escribi primero el contenido del post antes de enviarlo.');
+      return;
+    }
+
+    const payload = {
+      title: trimmedPrompt.slice(0, 60),
+      content: trimmedPrompt,
+      authorUsername: 'linkedin-user',
+    };
+
+    console.log('Payload enviado al backend:', payload);
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/posts/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      console.log('Respuesta del backend al crear post:', data);
+
+      if (!response.ok) {
+        setSubmitMessage(data.error ?? 'No pudimos enviar el post al backend.');
+        return;
+      }
+
+      setSubmitMessage('El backend recibio el contenido correctamente.');
+    } catch (error) {
+      console.error('Error enviando el post al backend:', error);
+      setSubmitMessage('Hubo un error de red al intentar enviar el post.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -56,9 +104,18 @@ export default function App() {
             prompt={prompt}
             selectedImage={selectedImage}
             authMessage={view === 'create' ? authMessage : ''}
+            submitMessage={submitMessage}
+            isSubmitting={isSubmitting}
             onBack={handleBackToHome}
+            onGenerate={handleGeneratePost}
             onImageChange={(event) => setSelectedImage(event.target.files?.[0] ?? null)}
-            onPromptChange={(event) => setPrompt(event.target.value)}
+            onPromptChange={(event) => {
+              setPrompt(event.target.value);
+
+              if (submitMessage) {
+                setSubmitMessage('');
+              }
+            }}
           />
         </div>
       </div>

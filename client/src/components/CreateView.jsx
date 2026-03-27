@@ -1,8 +1,11 @@
 export default function CreateView({
   authMessage,
+  submitMessage,
+  isSubmitting,
   prompt,
   selectedImage,
   onBack,
+  onGenerate,
   onImageChange,
   onPromptChange,
 }) {
@@ -16,6 +19,7 @@ export default function CreateView({
           LinkedIn.
         </p>
         {authMessage ? <p className="app__notice app__notice--success">{authMessage}</p> : null}
+        {submitMessage ? <p className="app__notice app__notice--info">{submitMessage}</p> : null}
 
         <div className="create__form">
           <div className="create__upload">
@@ -56,11 +60,11 @@ export default function CreateView({
         </div>
 
         <div className="create__actions">
-          <button className="create__secondary" type="button" onClick={onBack}>
+          <button className="create__secondary" type="button" onClick={onBack} disabled={isSubmitting}>
             Volver
           </button>
-          <button className="create__primary" type="button">
-            Generar post
+          <button className="create__primary" type="button" onClick={onGenerate} disabled={isSubmitting}>
+            {isSubmitting ? 'Enviando...' : 'Generar post'}
           </button>
         </div>
       </section>

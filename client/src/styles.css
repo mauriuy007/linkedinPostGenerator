@@ -80,6 +80,12 @@ body {
   border: 1px solid #fca5a5;
 }
 
+.app__notice--info {
+  color: #1e3a8a;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+}
+
 .home__cta {
   border: 0;
   border-radius: 999px;
@@ -284,6 +290,14 @@ body {
 .create__secondary:hover {
   transform: translateY(-2px);
   filter: brightness(1.02);
+}
+
+.create__primary:disabled,
+.create__secondary:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+  filter: none;
 }
 
 @media (max-width: 640px) {
