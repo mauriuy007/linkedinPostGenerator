@@ -19,8 +19,21 @@ dotenv.config({ path: envPaths });
 const app = express();
 const PORT = 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
 mongoose.set('bufferCommands', false);
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

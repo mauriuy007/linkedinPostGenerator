@@ -3,6 +3,12 @@ import { Post } from '../models/Post.js';
 
 export const requestPost = (req, res) => {
   try {
+    console.log('POST /api/posts/create - req.body:', req.body);
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.log('POST /api/posts/create - request body is empty');
+    }
+
     const { title, content, authorUsername, imageUrl } = req.body;
     const { error, value } = createPostValidator.validate({
       title,
