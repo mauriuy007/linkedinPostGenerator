@@ -25,8 +25,11 @@ export default function App() {
   const [authMessage, setAuthMessage] = useState('');
   const [submitMessage, setSubmitMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [generatedPost, setGeneratedPost] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [publishMessage, setPublishMessage] = useState('');
+  const [linkedinProfile, setLinkedinProfile] = useState(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
   useEffect(() => {
@@ -34,6 +37,7 @@ export default function App() {
     const linkedinStatus = currentUrl.searchParams.get('linkedin');
     const reason = currentUrl.searchParams.get('reason');
     const name = currentUrl.searchParams.get('name');
+    const picture = currentUrl.searchParams.get('picture');
 
     if (linkedinStatus === 'ok') {
       const nextMessage = name
@@ -41,6 +45,10 @@ export default function App() {
         : 'LinkedIn conectado correctamente. Ya podes crear tu post.';
 
       setAuthMessage(nextMessage);
+      setLinkedinProfile({
+        name: name ?? 'LinkedIn User',
+        picture: picture ?? '',
+      });
       setView('create');
     }
 
@@ -53,10 +61,37 @@ export default function App() {
       currentUrl.searchParams.delete('linkedin');
       currentUrl.searchParams.delete('reason');
       currentUrl.searchParams.delete('name');
+      currentUrl.searchParams.delete('picture');
       currentUrl.searchParams.delete('linkedinId');
       window.history.replaceState({}, '', currentUrl);
     }
   }, []);
+
+  useEffect(() => {
+    const syncLinkedinProfile = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/auth/linkedin/me`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+
+        setLinkedinProfile({
+          name: data?.name ?? 'LinkedIn User',
+          picture: data?.picture ?? '',
+        });
+        setView('create');
+      } catch (error) {
+        console.error('No pudimos recuperar el perfil de LinkedIn:', error);
+      }
+    };
+
+    syncLinkedinProfile();
+  }, [apiBaseUrl]);
 
   const handleLinkedinLogin = () => {
     window.location.assign(`${apiBaseUrl}/api/auth/linkedin`);
@@ -68,6 +103,7 @@ export default function App() {
     setSubmitMessage('');
     setGeneratedPost(null);
     setIsPreviewOpen(false);
+    setPublishMessage('');
   };
 
   const handleGeneratePost = async () => {
@@ -105,10 +141,12 @@ export default function App() {
     });
     setIsSubmitting(true);
     setSubmitMessage('');
+    setPublishMessage('');
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/posts/create`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -143,6 +181,44 @@ export default function App() {
     }
   };
 
+  const handlePublishPost = async () => {
+    if (!generatedPost) {
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishMessage('');
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/posts/publish`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          post: generatedPost,
+        }),
+      });
+
+      const data = await response.json();
+
+      console.log('Respuesta del backend al publicar en LinkedIn:', data);
+
+      if (!response.ok) {
+        setPublishMessage(data?.error ?? 'No pudimos publicar el post en LinkedIn.');
+        return;
+      }
+
+      setPublishMessage('El post se publico correctamente en LinkedIn.');
+    } catch (error) {
+      console.error('Error publicando el post en LinkedIn:', error);
+      setPublishMessage('Hubo un error de red al intentar publicar en LinkedIn.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <main className="app">
       <div className="app__viewport">
@@ -167,11 +243,24 @@ export default function App() {
           />
         </div>
       </div>
-      <LoadingOverlay isVisible={isSubmitting} />
+      <LoadingOverlay
+        isVisible={isSubmitting || isPublishing}
+        eyebrow={isPublishing ? 'Publicando en LinkedIn' : 'Generando con Gemini'}
+        title={isPublishing ? 'Estamos publicando tu post' : 'Estamos armando tu post para LinkedIn'}
+        description={
+          isPublishing
+            ? 'Subiendo la imagen y creando la publicación en la cuenta autenticada de LinkedIn.'
+            : 'Analizando el contexto y la imagen para mostrarte una vista previa antes de publicar.'
+        }
+      />
       <PostPreviewOverlay
         isVisible={isPreviewOpen}
         post={generatedPost}
+        linkedinProfile={linkedinProfile}
         onClose={() => setIsPreviewOpen(false)}
+        onPublish={handlePublishPost}
+        isPublishing={isPublishing}
+        publishMessage={publishMessage}
       />
     </main>
   );

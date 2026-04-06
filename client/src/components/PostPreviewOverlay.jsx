@@ -8,10 +8,22 @@ const formatPostContent = (content) =>
       </p>
     ));
 
-export default function PostPreviewOverlay({ isVisible, post, onClose }) {
+export default function PostPreviewOverlay({
+  isVisible,
+  post,
+  linkedinProfile,
+  onClose,
+  onPublish,
+  isPublishing,
+  publishMessage,
+}) {
   if (!isVisible || !post) {
     return null;
   }
+
+  const displayName = linkedinProfile?.name ?? post.authorUsername ?? 'LinkedIn User';
+  const profilePicture = linkedinProfile?.picture ?? '';
+  const avatarFallback = displayName.slice(0, 1)?.toUpperCase() ?? 'L';
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Vista previa del post">
@@ -28,10 +40,14 @@ export default function PostPreviewOverlay({ isVisible, post, onClose }) {
 
         <article className="previewPost">
           <div className="previewPost__top">
-            <div className="previewPost__avatar">{post.authorUsername?.slice(0, 1)?.toUpperCase() ?? 'L'}</div>
+            {profilePicture ? (
+              <img className="previewPost__avatarImage" src={profilePicture} alt={displayName} />
+            ) : (
+              <div className="previewPost__avatar">{avatarFallback}</div>
+            )}
             <div>
-              <h3 className="previewPost__author">{post.authorUsername ?? 'linkedin-user'}</h3>
-              <p className="previewPost__meta">Post generado por Gemini</p>
+              <h3 className="previewPost__author">{displayName}</h3>
+              <p className="previewPost__meta">Vista previa del post que se publicará en LinkedIn</p>
             </div>
           </div>
 
@@ -40,6 +56,17 @@ export default function PostPreviewOverlay({ isVisible, post, onClose }) {
           ) : null}
 
           <div className="previewPost__content">{formatPostContent(post.content ?? '')}</div>
+
+          {publishMessage ? <p className="previewPost__status">{publishMessage}</p> : null}
+
+          <div className="previewPost__actions">
+            <button className="previewModal__close" type="button" onClick={onClose} disabled={isPublishing}>
+              Cerrar
+            </button>
+            <button className="previewPost__publish" type="button" onClick={onPublish} disabled={isPublishing}>
+              {isPublishing ? 'Posteando...' : 'Postear'}
+            </button>
+          </div>
         </article>
       </section>
     </div>

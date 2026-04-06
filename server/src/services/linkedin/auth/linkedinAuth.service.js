@@ -4,7 +4,13 @@ const LINKEDIN_AUTH_URL = 'https://www.linkedin.com/oauth/v2/authorization';
 const LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
 const LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo';
 const STATE_COOKIE_NAME = 'linkedin_oauth_state';
+const ACCESS_TOKEN_COOKIE_NAME = 'linkedin_access_token';
+const MEMBER_URN_COOKIE_NAME = 'linkedin_member_urn';
+const PROFILE_NAME_COOKIE_NAME = 'linkedin_profile_name';
+const PROFILE_PICTURE_COOKIE_NAME = 'linkedin_profile_picture';
+const PROFILE_ID_COOKIE_NAME = 'linkedin_profile_id';
 const STATE_COOKIE_MAX_AGE_SECONDS = 10 * 60;
+const DEFAULT_SESSION_MAX_AGE_SECONDS = 60 * 60;
 
 const getFrontendUrl = () => {
   return process.env.FRONTEND_URL ?? 'http://localhost:5173';
@@ -53,16 +59,49 @@ const parseCookies = (cookieHeader = '') => {
     }, {});
 };
 
-const buildStateCookie = (state, req) => {
+const buildCookie = (name, value, req, options = {}) => {
   const isSecure =
     req.secure || req.headers['x-forwarded-proto'] === 'https';
 
   const cookieParts = [
-    `${STATE_COOKIE_NAME}=${encodeURIComponent(state)}`,
-    'HttpOnly',
+    `${name}=${encodeURIComponent(value)}`,
+    'Path=/',
+    `SameSite=${options.sameSite ?? 'Lax'}`,
+    `Max-Age=${options.maxAge ?? DEFAULT_SESSION_MAX_AGE_SECONDS}`
+  ];
+
+  if (options.httpOnly ?? true) {
+    cookieParts.push('HttpOnly');
+  }
+
+  if (isSecure) {
+    cookieParts.push('Secure');
+  }
+
+  return cookieParts.join('; ');
+};
+
+const buildStateCookie = (state, req) => {
+  return buildCookie(STATE_COOKIE_NAME, state, req, {
+    maxAge: STATE_COOKIE_MAX_AGE_SECONDS,
+    httpOnly: true
+  });
+};
+
+const clearStateCookie = req => {
+  return clearCookie(STATE_COOKIE_NAME, req);
+};
+
+const clearCookie = (name, req) => {
+  const isSecure =
+    req.secure || req.headers['x-forwarded-proto'] === 'https';
+
+  const cookieParts = [
+    `${name}=`,
     'Path=/',
     'SameSite=Lax',
-    `Max-Age=${STATE_COOKIE_MAX_AGE_SECONDS}`
+    'Max-Age=0',
+    'HttpOnly'
   ];
 
   if (isSecure) {
@@ -72,23 +111,45 @@ const buildStateCookie = (state, req) => {
   return cookieParts.join('; ');
 };
 
-const clearStateCookie = req => {
-  const isSecure =
-    req.secure || req.headers['x-forwarded-proto'] === 'https';
-
-  const cookieParts = [
-    `${STATE_COOKIE_NAME}=`,
-    'HttpOnly',
-    'Path=/',
-    'SameSite=Lax',
-    'Max-Age=0'
+const buildSessionCookies = ({ accessToken, memberUrn, displayName, picture, linkedinId, maxAge }, req) => {
+  return [
+    buildCookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, req, { maxAge, httpOnly: true }),
+    buildCookie(MEMBER_URN_COOKIE_NAME, memberUrn, req, { maxAge, httpOnly: true }),
+    buildCookie(PROFILE_NAME_COOKIE_NAME, displayName ?? '', req, { maxAge, httpOnly: true }),
+    buildCookie(PROFILE_PICTURE_COOKIE_NAME, picture ?? '', req, { maxAge, httpOnly: true }),
+    buildCookie(PROFILE_ID_COOKIE_NAME, linkedinId ?? '', req, { maxAge, httpOnly: true })
   ];
+};
 
-  if (isSecure) {
-    cookieParts.push('Secure');
+const clearSessionCookies = req => {
+  return [
+    clearCookie(ACCESS_TOKEN_COOKIE_NAME, req),
+    clearCookie(MEMBER_URN_COOKIE_NAME, req),
+    clearCookie(PROFILE_NAME_COOKIE_NAME, req),
+    clearCookie(PROFILE_PICTURE_COOKIE_NAME, req),
+    clearCookie(PROFILE_ID_COOKIE_NAME, req)
+  ];
+};
+
+export const getLinkedinSessionFromRequest = req => {
+  const cookies = parseCookies(req.headers.cookie);
+  const accessToken = cookies[ACCESS_TOKEN_COOKIE_NAME];
+  const memberUrn = cookies[MEMBER_URN_COOKIE_NAME];
+  const displayName = cookies[PROFILE_NAME_COOKIE_NAME] ?? '';
+  const picture = cookies[PROFILE_PICTURE_COOKIE_NAME] ?? '';
+  const linkedinId = cookies[PROFILE_ID_COOKIE_NAME] ?? '';
+
+  if (!accessToken || !memberUrn) {
+    return null;
   }
 
-  return cookieParts.join('; ');
+  return {
+    accessToken,
+    memberUrn,
+    displayName,
+    picture,
+    linkedinId
+  };
 };
 
 export const linkedinLogin = async (req, res) => {
@@ -116,7 +177,7 @@ export const linkedinCallback = async (req, res) => {
   const cookies = parseCookies(req.headers.cookie);
   const storedState = cookies[STATE_COOKIE_NAME];
 
-  res.setHeader('Set-Cookie', clearStateCookie(req));
+  res.setHeader('Set-Cookie', [clearStateCookie(req), ...clearSessionCookies(req)]);
 
   if (error) {
     return res.redirect(
@@ -192,18 +253,39 @@ export const linkedinCallback = async (req, res) => {
     }
 
     const linkedinId = userData.sub;
+    const memberUrn = `urn:li:person:${linkedinId}`;
     const displayName =
       userData.name ??
       [userData.given_name, userData.family_name].filter(Boolean).join(' ') ??
       '';
+    const picture = userData.picture ?? '';
+    const maxAge = Number.isFinite(tokenData.expires_in)
+      ? tokenData.expires_in
+      : DEFAULT_SESSION_MAX_AGE_SECONDS;
 
     console.log('LinkedIn login successful for:', linkedinId);
+
+    res.setHeader('Set-Cookie', [
+      clearStateCookie(req),
+      ...buildSessionCookies(
+        {
+          accessToken,
+          memberUrn,
+          displayName,
+          picture,
+          linkedinId,
+          maxAge
+        },
+        req
+      )
+    ]);
 
     return res.redirect(
       buildFrontendRedirectUrl('/', {
         linkedin: 'ok',
         linkedinId,
-        name: displayName
+        name: displayName,
+        picture
       })
     );
   } catch (error) {
@@ -215,4 +297,21 @@ export const linkedinCallback = async (req, res) => {
       })
     );
   }
+};
+
+export const linkedinMe = async (req, res) => {
+  const session = getLinkedinSessionFromRequest(req);
+
+  if (!session) {
+    return res.status(401).json({
+      error: 'No active LinkedIn session found'
+    });
+  }
+
+  return res.status(200).json({
+    linkedinId: session.linkedinId,
+    memberUrn: session.memberUrn,
+    name: session.displayName,
+    picture: session.picture
+  });
 };
