@@ -26,7 +26,7 @@ export default function CreateView({
             <span className="create__uploadTitle">Imagen de referencia</span>
             <p className="create__uploadText">
               Elegí una imagen para acompañar el contexto que le vas a mandar a
-              OpenAI.
+              Gemini.
             </p>
 
             <label className="create__uploadButton" htmlFor="image-upload">

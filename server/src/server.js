@@ -35,10 +35,27 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
+
+app.use((error, req, res, next) => {
+  if (error?.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'The uploaded image is too large. Please choose a smaller file.',
+    });
+  }
+
+  if (error) {
+    console.error('Unhandled server error:', error);
+    return res.status(500).json({
+      error: error.message ?? 'Unexpected server error',
+    });
+  }
+
+  return next();
+});
 
 const connectToMongoIfConfigured = async () => {
   if (!MONGODB_URI) {

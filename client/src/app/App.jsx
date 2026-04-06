@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
 import CreateView from '../components/CreateView.jsx';
 import HomeView from '../components/HomeView.jsx';
+import LoadingOverlay from '../components/LoadingOverlay.jsx';
+import PostPreviewOverlay from '../components/PostPreviewOverlay.jsx';
+
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const [, base64 = ''] = result.split(',');
+      resolve(base64);
+    };
+
+    reader.onerror = () => reject(new Error('No pudimos leer la imagen seleccionada.'));
+    reader.readAsDataURL(file);
+  });
 
 export default function App() {
   const [view, setView] = useState('home');
@@ -9,6 +25,8 @@ export default function App() {
   const [authMessage, setAuthMessage] = useState('');
   const [submitMessage, setSubmitMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedPost, setGeneratedPost] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
   useEffect(() => {
@@ -48,6 +66,8 @@ export default function App() {
     setView('home');
     setAuthMessage('');
     setSubmitMessage('');
+    setGeneratedPost(null);
+    setIsPreviewOpen(false);
   };
 
   const handleGeneratePost = async () => {
@@ -58,13 +78,31 @@ export default function App() {
       return;
     }
 
+    let imageBase64;
+
+    if (selectedImage) {
+      try {
+        imageBase64 = await fileToBase64(selectedImage);
+      } catch (error) {
+        console.error('Error leyendo la imagen:', error);
+        setSubmitMessage('No pudimos procesar la imagen seleccionada.');
+        return;
+      }
+    }
+
     const payload = {
       title: trimmedPrompt.slice(0, 60),
       content: trimmedPrompt,
       authorUsername: 'linkedin-user',
+      imageBase64,
+      imageMimeType: selectedImage?.type,
+      imageName: selectedImage?.name,
     };
 
-    console.log('Payload enviado al backend:', payload);
+    console.log('Payload enviado al backend:', {
+      ...payload,
+      imageBase64: imageBase64 ? `[base64 length: ${imageBase64.length}]` : undefined,
+    });
     setIsSubmitting(true);
     setSubmitMessage('');
 
@@ -77,16 +115,26 @@ export default function App() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data = null;
+
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch (parseError) {
+        console.error('No pudimos parsear la respuesta del backend:', parseError);
+      }
 
       console.log('Respuesta del backend al crear post:', data);
+      console.log('Post generado por Gemini desde el backend:', data?.post?.content);
 
       if (!response.ok) {
-        setSubmitMessage(data.error ?? 'No pudimos enviar el post al backend.');
+        setSubmitMessage(data?.error ?? 'El backend devolvio un error inesperado.');
         return;
       }
 
-      setSubmitMessage('El backend recibio el contenido correctamente.');
+      setGeneratedPost(data?.post ?? null);
+      setIsPreviewOpen(true);
+      setSubmitMessage('El post fue generado correctamente por Gemini.');
     } catch (error) {
       console.error('Error enviando el post al backend:', error);
       setSubmitMessage('Hubo un error de red al intentar enviar el post.');
@@ -119,6 +167,12 @@ export default function App() {
           />
         </div>
       </div>
+      <LoadingOverlay isVisible={isSubmitting} />
+      <PostPreviewOverlay
+        isVisible={isPreviewOpen}
+        post={generatedPost}
+        onClose={() => setIsPreviewOpen(false)}
+      />
     </main>
   );
 }
