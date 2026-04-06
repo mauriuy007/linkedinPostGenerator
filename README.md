@@ -1,165 +1,231 @@
 # LinkedIn Post Generator
 
-## Project idea
+## Overview
 
-This project is meant to help users generate LinkedIn posts starting from an initial idea.
+This project helps a user authenticate with LinkedIn, upload an image, provide a prompt, generate a LinkedIn-ready post with Gemini, and preview the result before publishing.
 
-The general application flow is designed as follows:
+The app is split into:
 
-1. The user interacts with the frontend and provides context for the post.
-2. The backend receives that information and orchestrates the external integrations.
-3. It first connects to the LinkedIn API to authenticate the user and obtain publishing permissions.
-4. It then uses the OpenAI API to transform the user's idea into a more polished post.
-5. Finally, the backend can store the generated content and leave it ready for publication or publish it to LinkedIn.
+- `client/`: React + Vite frontend
+- `server/`: Node.js + Express backend
 
-In other words, the backend acts as the middle layer between the user interface, LinkedIn authentication and publishing, and OpenAI content generation.
+## Current flow
 
-## Conceptual flow between backend, LinkedIn, and OpenAI
+The current end-to-end flow is:
 
-The expected system flow is:
+1. The user starts from the frontend and authenticates with LinkedIn.
+2. The user uploads an image and writes the context or prompt for the post.
+3. The frontend converts the selected image to base64 and sends it to the backend together with the prompt.
+4. The backend validates the request in `postController`.
+5. `postController` calls `generatePost` from `gemini.service.js`.
+6. Gemini generates the post text using the prompt and the uploaded image.
+7. The backend returns a generated post object to the frontend.
+8. The frontend shows a loading overlay while generation is in progress.
+9. Once the response arrives, the frontend shows a preview overlay with the generated text and image.
 
-- The frontend collects the prompt, the context, and optionally a reference image.
-- The backend validates the user's data and session.
-- The backend starts LinkedIn authentication through OAuth.
-- Once the user is authenticated, LinkedIn returns authorization to operate on that account.
-- Using the user's context, the backend builds the request to OpenAI to generate the post content.
-- The result can be stored in MongoDB as a draft or as a generated post.
-- If the user confirms publication, the backend interacts with LinkedIn again to publish the final content.
+At this stage, the generation and preview flow is connected. The final publication to LinkedIn is still pending.
+
+## Technologies used
+
+- React 19
+- Vite
+- Node.js
+- Express
+- MongoDB / Mongoose
+- Joi
+- LinkedIn OAuth
+- Google Gemini via `@google/genai`
 
 ## Project structure
 
-The repository is divided into two main parts:
+### Root
 
-- `client/`: frontend application built with React and Vite.
-- `server/`: backend built with Node.js and Express, including business logic and MongoDB persistence.
-
-## File structure
-
-### Project root
-
-- `package.json`: general project configuration, scripts, and shared dependencies.
-- `package-lock.json`: npm lockfile.
-- `README.md`: general project documentation.
+- `package.json`: scripts and dependencies
+- `package-lock.json`: npm lockfile
+- `README.md`: project documentation
 
 ### `client/`
 
-Contains the frontend application.
+Frontend application built with React and Vite.
 
-- `client/index.html`: base HTML file that loads the app.
-- `client/vite.config.js`: Vite configuration.
-- `client/public/favicon.ico`: project icon.
+- `client/index.html`: app entry HTML
+- `client/vite.config.js`: Vite configuration
+- `client/public/favicon.ico`: favicon
 
 #### `client/src/app/`
 
-- `App.jsx`: main component; controls the switch between the home view and the post creation view.
-- `main.jsx`: React entry point.
-- `routes.jsx`: reserved file for routing; currently empty.
+- `App.jsx`: main app state and flow orchestration
+- `main.jsx`: React entry point
+- `routes.jsx`: reserved routing file
 
 #### `client/src/components/`
 
-- `HomeView.jsx`: initial screen with the button that starts the flow.
-- `CreateView.jsx`: view where the user uploads an image, writes context, and prepares the post generation request.
+- `HomeView.jsx`: initial screen with the button to start the LinkedIn flow
+- `CreateView.jsx`: screen to upload an image and write the prompt
+- `LoadingOverlay.jsx`: fullscreen loading layer shown while Gemini is generating the post
+- `PostPreviewOverlay.jsx`: fullscreen preview layer that shows the generated LinkedIn post with image and text
 
 #### `client/src/`
 
-- `styles.css`: global interface styles.
+- `styles.css`: global styles for the app, overlays, loading state, and preview modal
 
 ### `server/`
 
-Contains the API, authentication logic, database connection, and the layer intended for external integrations.
+Backend application built with Express.
 
 #### `server/src/`
 
-- `server.js`: backend entry point. It configures Express, loads environment variables, connects to MongoDB, and mounts the routes.
+- `server.js`: loads environment variables, configures Express, enables CORS, parses request bodies, mounts routes, and starts the server
 
 #### `server/src/routes/`
 
-- `auth.routes.js`: defines authentication endpoints, currently `login` and `register`.
+- `auth.routes.js`: LinkedIn auth endpoints
+- `post.routes.js`: post generation endpoint
 
 #### `server/src/controllers/`
 
-- `auth.controller.js`: handles authentication HTTP requests, performs basic validation, and returns responses to the client.
+- `postController.js`: validates the incoming request, calls Gemini, builds the `Post` object, and returns it to the client
 
 #### `server/src/services/`
 
-This is where the integration logic with external services lives.
-
-- `services/linkedin/auth/linkedinAuth.service.js`: builds the OAuth redirect to LinkedIn to start login and authorization.
-- `services/openAi/openAi.service.js`: reserved for the OpenAI integration; currently empty.
+- `services/gemini/gemini.service.js`: sends prompt + image to Gemini and returns generated post text
+- `services/linkedin/auth/linkedinAuth.service.js`: handles LinkedIn OAuth login and callback flow
+- `services/linkedin/post/createLinkedinPost.js`: reserved for future LinkedIn publishing logic
 
 #### `server/src/models/`
 
-Domain models of the application, separated from MongoDB-specific logic.
-
-- `models/User.js`: represents the user and contains username, password, and email validations.
-- `models/Post.js`: represents a post and its data validation rules.
+- `models/Post.js`: domain representation of a generated post
+- `models/User.js`: domain representation of a user
 
 #### `server/src/mongoose/schemas/`
 
-MongoDB schemas and persistent models.
+- `mongoose/schemas/post.schema.js`: MongoDB schema for posts
+- `mongoose/schemas/user.schema.js`: MongoDB schema for users
 
-- `mongoose/schemas/user.schema.js`: user schema and logic for creating users with hashed passwords.
-- `mongoose/schemas/post.schema.js`: schema for generated or stored posts.
+#### `server/src/validators/`
 
-#### `server/src/utils/`
-
-- `utils/jwtGenerator.js`: generates JWT tokens for sessions and authentication.
+- `createPostValidator.js`: validates prompt, author, optional image URL, base64 image, MIME type, and file name
 
 #### `server/src/errors/`
 
-- `errors/UserError.js`: custom error for user validation and business rules.
-- `errors/PostError.js`: custom error for post-related validations.
+- `errors/PostError.js`: post-related custom errors
+- `errors/UserError.js`: user-related custom errors
 
-## Responsibility split
+## Backend behavior
 
-### Frontend
+### Post generation
 
-The frontend is responsible for:
+The post generation endpoint is:
 
-- displaying the interface;
-- collecting the user's text and context;
-- allowing the user to select a reference image;
-- triggering actions against the backend.
+- `POST /api/posts/create`
 
-### Backend
+Expected request payload:
 
-The backend is responsible for:
+```json
+{
+  "title": "Short title",
+  "content": "Prompt or context written by the user",
+  "authorUsername": "linkedin-user",
+  "imageBase64": "base64-encoded-image",
+  "imageMimeType": "image/png",
+  "imageName": "logo.png"
+}
+```
 
-- validating input data;
-- handling local authentication;
-- connecting to MongoDB;
-- starting the LinkedIn authentication flow;
-- centralizing the future OpenAI request for post generation;
-- persisting users and posts.
+What the backend does:
 
-### LinkedIn API
+- validates the payload with Joi
+- calls Gemini with the user prompt
+- includes the uploaded image when available
+- returns a `Post` object with the generated text in `content`
+- builds `imageUrl` as a data URL when the image came from base64 input
 
-LinkedIn is used to:
+### LinkedIn auth
 
-- authenticate the user with OAuth;
-- authorize permissions on the user's account;
-- eventually publish the generated post.
+The auth flow currently includes:
 
-### OpenAI API
+- `GET /api/auth/linkedin`
+- `GET /api/auth/linkedin/callback`
 
-OpenAI is used to:
+The frontend redirects the user to the LinkedIn auth route and receives the result through query params after the callback.
 
-- receive the user's prompt and context;
-- generate a LinkedIn post draft;
-- return a more polished version ready for review or publication.
+## Frontend behavior
 
-## Current code state
+The frontend currently supports:
 
-The project structure already reflects the general architecture, but the full integration is still in progress.
+- LinkedIn login start
+- prompt input
+- image selection from local disk
+- image conversion to base64 before sending the request
+- request submission to the backend
+- loading screen while Gemini is generating the post
+- preview modal with generated text and image
+- debug logs in the browser console for request and response flow
 
-At the moment:
+## Environment variables
 
-- the frontend already provides the base UI for starting the post creation flow;
-- the backend already includes the server, authentication routes, and MongoDB connection;
-- there is an initial LinkedIn authentication service;
-- the OpenAI layer already has a dedicated file, but its logic has not been implemented yet;
-- the complete end-to-end flow from the interface to generation and final publication is not fully connected yet.
+The backend reads environment variables from `server/.env`.
+
+Important variables used by the current code:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+FRONTEND_URL=http://localhost:5173
+LINKEDIN_CLIENT_ID=your_linkedin_client_id
+LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret
+LINKEDIN_REDIRECT_URI=http://localhost:3000/api/auth/linkedin/callback
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Notes:
+
+- `GEMINI_API_KEY` is required for post generation.
+- `FRONTEND_URL` is used by the backend CORS configuration.
+- Avoid spaces around `=` in `.env` entries.
+
+## Running the project
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the backend:
+
+```bash
+npm run dev
+```
+
+Start the frontend:
+
+```bash
+npm run client:dev
+```
+
+Build the frontend:
+
+```bash
+npm run client:build
+```
+
+## Current status
+
+Implemented:
+
+- LinkedIn OAuth start and callback flow
+- prompt + image submission from frontend to backend
+- Gemini post generation
+- debug logs for backend and frontend generation flow
+- loading overlay while generating
+- preview overlay showing the generated post
+
+Pending:
+
+- final publication of the generated post to LinkedIn
+- persistence of generated posts in MongoDB as part of the main flow
+- richer post management after preview
 
 ## Summary
 
-The idea of this project is to build an application where the user prepares a content idea, the backend processes it, LinkedIn is used for authentication and publishing, and OpenAI is used to generate the post text. The current structure already separates frontend, backend, domain models, persistence, and external integrations clearly, which provides a solid base for completing the full flow.
+The project already supports a working generation flow from frontend to Gemini and back to the UI. A user can authenticate with LinkedIn, provide context plus an image, generate a post with Gemini, and preview the final result on screen. The next major step is wiring the generated post into the actual LinkedIn publishing flow.
