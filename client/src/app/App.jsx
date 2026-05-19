@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import CreateView from '../components/CreateView.jsx';
 import HomeView from '../components/HomeView.jsx';
 import LoadingOverlay from '../components/LoadingOverlay.jsx';
+import PlatformSelectView from '../components/PlatformSelectView.jsx';
 import PostPreviewOverlay from '../components/PostPreviewOverlay.jsx';
 
 const fileToBase64 = (file) =>
@@ -20,6 +21,8 @@ const fileToBase64 = (file) =>
 
 export default function App() {
   const [view, setView] = useState('home');
+  const [platformMessage, setPlatformMessage] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState('linkedin');
   const [selectedImage, setSelectedImage] = useState(null);
   const [prompt, setPrompt] = useState('');
   const [authMessage, setAuthMessage] = useState('');
@@ -49,6 +52,7 @@ export default function App() {
         name: name ?? 'LinkedIn User',
         picture: picture ?? '',
       });
+      setSelectedPlatform('linkedin');
       setView('create');
     }
 
@@ -84,6 +88,7 @@ export default function App() {
           name: data?.name ?? 'LinkedIn User',
           picture: data?.picture ?? '',
         });
+        setSelectedPlatform('linkedin');
         setView('create');
       } catch (error) {
         console.error('No pudimos recuperar el perfil de LinkedIn:', error);
@@ -93,6 +98,12 @@ export default function App() {
     syncLinkedinProfile();
   }, [apiBaseUrl]);
 
+  const handleStartFlow = () => {
+    setAuthMessage('');
+    setPlatformMessage('');
+    setView('platforms');
+  };
+
   const handleLinkedinLogin = () => {
     window.location.assign(`${apiBaseUrl}/api/auth/linkedin`);
   };
@@ -100,10 +111,34 @@ export default function App() {
   const handleBackToHome = () => {
     setView('home');
     setAuthMessage('');
+    setPlatformMessage('');
     setSubmitMessage('');
     setGeneratedPost(null);
     setIsPreviewOpen(false);
     setPublishMessage('');
+  };
+
+  const handleBackToPlatforms = () => {
+    setView('platforms');
+    setSubmitMessage('');
+    setGeneratedPost(null);
+    setIsPreviewOpen(false);
+    setPublishMessage('');
+  };
+
+  const handlePlatformSelection = (platform) => {
+    setSelectedPlatform(platform);
+    setPlatformMessage('');
+
+    if (platform === 'linkedin') {
+      handleLinkedinLogin();
+      return;
+    }
+
+    const nextPlatformName = platform === 'tiktok' ? 'TikTok' : 'Instagram';
+    setPlatformMessage(
+      `${nextPlatformName} va a aparecer aca cuando tengamos su documentacion y las API keys listas.`
+    );
   };
 
   const handleGeneratePost = async () => {
@@ -223,14 +258,20 @@ export default function App() {
     <main className="app">
       <div className="app__viewport">
         <div className={`app__track app__track--${view}`}>
-          <HomeView onStart={handleLinkedinLogin} authMessage={view === 'home' ? authMessage : ''} />
+          <HomeView onStart={handleStartFlow} authMessage={view === 'home' ? authMessage : ''} />
+          <PlatformSelectView
+            noticeMessage={view === 'platforms' ? platformMessage : ''}
+            selectedPlatform={selectedPlatform}
+            onBack={handleBackToHome}
+            onSelectPlatform={handlePlatformSelection}
+          />
           <CreateView
             prompt={prompt}
             selectedImage={selectedImage}
             authMessage={view === 'create' ? authMessage : ''}
             submitMessage={submitMessage}
             isSubmitting={isSubmitting}
-            onBack={handleBackToHome}
+            onBack={handleBackToPlatforms}
             onGenerate={handleGeneratePost}
             onImageChange={(event) => setSelectedImage(event.target.files?.[0] ?? null)}
             onPromptChange={(event) => {
@@ -246,7 +287,11 @@ export default function App() {
       <LoadingOverlay
         isVisible={isSubmitting || isPublishing}
         eyebrow={isPublishing ? 'Publicando en LinkedIn' : 'Generando con Gemini'}
-        title={isPublishing ? 'Estamos publicando tu post' : 'Estamos armando tu post para LinkedIn'}
+        title={
+          isPublishing
+            ? 'Estamos publicando tu post'
+            : `Estamos armando tu post para ${selectedPlatform === 'linkedin' ? 'LinkedIn' : 'la plataforma elegida'}`
+        }
         description={
           isPublishing
             ? 'Subiendo la imagen y creando la publicación en la cuenta autenticada de LinkedIn.'
