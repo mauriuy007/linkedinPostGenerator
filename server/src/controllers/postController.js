@@ -38,15 +38,13 @@ export const requestPost = async (req, res) => {
 
     console.log('POST /api/posts/create - Gemini returned:', generatedContent);
 
-    const resolvedImageUrl = value.imageUrl
-      ?? (value.imageBase64 && value.imageMimeType
-        ? `data:${value.imageMimeType};base64,${value.imageBase64}`
-        : undefined);
-
     const post = new Post({
       ...value,
       content: generatedContent,
-      imageUrl: resolvedImageUrl,
+      imageUrl: value.imageUrl
+        ?? (value.imageBase64 && value.imageMimeType
+          ? `data:${value.imageMimeType};base64,${value.imageBase64}`
+          : undefined),
     });
 
     console.log('POST /api/posts/create - response post:', {
