@@ -1,3 +1,5 @@
+import { parseDataUrl } from '../../post/imageHost.service.js';
+
 const LINKEDIN_ASSETS_URL = 'https://api.linkedin.com/v2/assets?action=registerUpload';
 const LINKEDIN_UGC_POSTS_URL = 'https://api.linkedin.com/v2/ugcPosts';
 
@@ -5,25 +7,6 @@ const buildLinkedinHeaders = accessToken => ({
   Authorization: `Bearer ${accessToken}`,
   'X-Restli-Protocol-Version': '2.0.0'
 });
-
-const parseDataUrl = imageUrl => {
-  if (!imageUrl?.startsWith('data:')) {
-    return null;
-  }
-
-  const match = imageUrl.match(/^data:(.+);base64,(.+)$/);
-
-  if (!match) {
-    throw new Error('Unsupported image data URL format');
-  }
-
-  const [, mimeType, base64Data] = match;
-
-  return {
-    mimeType,
-    buffer: Buffer.from(base64Data, 'base64')
-  };
-};
 
 const registerImageUpload = async ({ accessToken, memberUrn }) => {
   const response = await fetch(LINKEDIN_ASSETS_URL, {

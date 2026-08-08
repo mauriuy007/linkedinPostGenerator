@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { parseCookies, buildCookie, buildClearCookie } from '../../../utils/cookies.js';
 
 const LINKEDIN_AUTH_URL   = 'https://www.linkedin.com/oauth/v2/authorization';
 const LINKEDIN_TOKEN_URL  = 'https://www.linkedin.com/oauth/v2/accessToken';
@@ -28,38 +29,6 @@ const getRequiredEnv = () => {
   }
 
   return { clientId, clientSecret, redirectUri };
-};
-
-const parseCookies = (cookieHeader = '') =>
-  cookieHeader
-    .split(';')
-    .map(c => c.trim())
-    .filter(Boolean)
-    .reduce((acc, cookie) => {
-      const sep = cookie.indexOf('=');
-      if (sep === -1) return acc;
-      acc[cookie.slice(0, sep)] = decodeURIComponent(cookie.slice(sep + 1));
-      return acc;
-    }, {});
-
-const buildCookie = (name, value, req, options = {}) => {
-  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  const parts = [
-    `${name}=${encodeURIComponent(value)}`,
-    'Path=/',
-    `SameSite=${options.sameSite ?? 'Lax'}`,
-    `Max-Age=${options.maxAge ?? DEFAULT_SESSION_MAX_AGE_SECONDS}`,
-  ];
-  if (options.httpOnly ?? true) parts.push('HttpOnly');
-  if (isSecure) parts.push('Secure');
-  return parts.join('; ');
-};
-
-const buildClearCookie = (name, req) => {
-  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  const parts = [`${name}=`, 'Path=/', 'SameSite=Lax', 'Max-Age=0', 'HttpOnly'];
-  if (isSecure) parts.push('Secure');
-  return parts.join('; ');
 };
 
 /* ─── Exports ──────────────────────────────────────────────────────────── */

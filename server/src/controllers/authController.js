@@ -11,6 +11,20 @@ import {
   fetchLinkedinUserInfo,
   buildFrontendRedirectUrl,
 } from '../services/linkedin/auth/linkedinAuth.service.js';
+import {
+  generateOAuthState as generateInstagramOAuthState,
+  buildOAuthLoginUrl as buildInstagramOAuthLoginUrl,
+  buildStateCookieHeader as buildInstagramStateCookieHeader,
+  clearStateCookieHeader as clearInstagramStateCookieHeader,
+  buildSessionCookieHeaders as buildInstagramSessionCookieHeaders,
+  clearSessionCookieHeaders as clearInstagramSessionCookieHeaders,
+  getInstagramSessionFromRequest,
+  getStoredOAuthState as getStoredInstagramOAuthState,
+  exchangeCodeForToken as exchangeInstagramCodeForToken,
+  exchangeForLongLivedToken,
+  fetchInstagramUserInfo,
+  buildFrontendRedirectUrl as buildInstagramFrontendRedirectUrl,
+} from '../services/meta/instagram/auth/instagramAuth.service.js';
 
 export const linkedinLogin = async (req, res) => {
   try {
@@ -95,6 +109,84 @@ export const linkedinMe = (req, res) => {
   });
 };
 
-export const instagramLogin = () => {
-    
-}
+export const instagramLogin = async (req, res) => {
+  try {
+    const state    = generateInstagramOAuthState();
+    const loginUrl = buildInstagramOAuthLoginUrl(state);
+
+    res.setHeader('Set-Cookie', buildInstagramStateCookieHeader(state, req));
+    return res.redirect(loginUrl);
+  } catch (error) {
+    console.error('Instagram login setup failed:', error);
+    return res.status(500).json({ message: 'Instagram OAuth is not configured correctly' });
+  }
+};
+
+export const instagramCallback = async (req, res) => {
+  const { code, state, error, error_description: errorDescription } = req.query;
+  const storedState = getStoredInstagramOAuthState(req);
+
+  res.setHeader('Set-Cookie', [
+    clearInstagramStateCookieHeader(req),
+    ...clearInstagramSessionCookieHeaders(req),
+  ]);
+
+  if (error) {
+    return res.redirect(
+      buildInstagramFrontendRedirectUrl('/', { instagram: 'error', reason: errorDescription ?? error })
+    );
+  }
+
+  if (!code) {
+    return res.redirect(
+      buildInstagramFrontendRedirectUrl('/', {
+        instagram: 'error',
+        reason: 'No se recibio el codigo de autorizacion de Instagram',
+      })
+    );
+  }
+
+  if (!state || !storedState || state !== storedState) {
+    return res.redirect(
+      buildInstagramFrontendRedirectUrl('/', { instagram: 'error', reason: 'Estado OAuth invalido' })
+    );
+  }
+
+  try {
+    const { shortLivedAccessToken, userId } = await exchangeInstagramCodeForToken(code);
+    const { accessToken, expiresIn } = await exchangeForLongLivedToken(shortLivedAccessToken);
+    const { username } = await fetchInstagramUserInfo(accessToken, userId);
+
+    console.log('Instagram login successful for:', userId);
+
+    res.setHeader('Set-Cookie', [
+      clearInstagramStateCookieHeader(req),
+      ...buildInstagramSessionCookieHeaders({ accessToken, userId, username, maxAge: expiresIn }, req),
+    ]);
+
+    return res.redirect(
+      buildInstagramFrontendRedirectUrl('/', { instagram: 'ok', instagramId: userId, name: username })
+    );
+  } catch (err) {
+    console.error('Error during Instagram auth:', err);
+    return res.redirect(
+      buildInstagramFrontendRedirectUrl('/', {
+        instagram: 'error',
+        reason: 'Error interno durante la autenticacion con Instagram',
+      })
+    );
+  }
+};
+
+export const instagramMe = (req, res) => {
+  const session = getInstagramSessionFromRequest(req);
+
+  if (!session) {
+    return res.status(401).json({ error: 'No active Instagram session found' });
+  }
+
+  return res.status(200).json({
+    instagramId: session.userId,
+    username:    session.username,
+  });
+};
