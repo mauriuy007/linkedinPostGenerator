@@ -94,3 +94,7 @@ export const linkedinMe = (req, res) => {
     picture:    session.picture,
   });
 };
+
+export const instagramLogin = () => {
+    
+}
