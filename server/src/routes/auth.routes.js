@@ -7,8 +7,9 @@ import {
 
 const router = Router();
 
-router.get('/linkedin',          linkedinLogin);
-router.get('/linkedin/callback', linkedinCallback);
-router.get('/linkedin/me',       linkedinMe);
+router.get('/linkedin',linkedinLogin);
+router.get('/linkedin/callback',linkedinCallback);
+router.get('/linkedin/me',linkedinMe);
+router.get('/instagram',instagramLogin)
 
 export default router;
