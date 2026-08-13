@@ -33,11 +33,14 @@ export default function App() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
   const [linkedinProfile, setLinkedinProfile] = useState(null);
+  const [instagramProfile, setInstagramProfile] = useState(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+  const platformLabel = selectedPlatform === 'instagram' ? 'Instagram' : 'LinkedIn';
 
   useEffect(() => {
     const currentUrl = new URL(window.location.href);
     const linkedinStatus = currentUrl.searchParams.get('linkedin');
+    const instagramStatus = currentUrl.searchParams.get('instagram');
     const reason = currentUrl.searchParams.get('reason');
     const name = currentUrl.searchParams.get('name');
     const picture = currentUrl.searchParams.get('picture');
@@ -61,12 +64,33 @@ export default function App() {
       setView('home');
     }
 
-    if (linkedinStatus) {
+    if (instagramStatus === 'ok') {
+      const nextMessage = name
+        ? `Instagram conectado correctamente. Bienvenido, ${name}.`
+        : 'Instagram conectado correctamente. Ya podes crear tu post.';
+
+      setAuthMessage(nextMessage);
+      setInstagramProfile({
+        name: name ?? 'Instagram User',
+        picture: '',
+      });
+      setSelectedPlatform('instagram');
+      setView('create');
+    }
+
+    if (instagramStatus === 'error') {
+      setAuthMessage(reason ?? 'No pudimos completar el login con Instagram.');
+      setView('home');
+    }
+
+    if (linkedinStatus || instagramStatus) {
       currentUrl.searchParams.delete('linkedin');
+      currentUrl.searchParams.delete('instagram');
       currentUrl.searchParams.delete('reason');
       currentUrl.searchParams.delete('name');
       currentUrl.searchParams.delete('picture');
       currentUrl.searchParams.delete('linkedinId');
+      currentUrl.searchParams.delete('instagramId');
       window.history.replaceState({}, '', currentUrl);
     }
   }, []);
@@ -98,6 +122,33 @@ export default function App() {
     syncLinkedinProfile();
   }, [apiBaseUrl]);
 
+  useEffect(() => {
+    const syncInstagramProfile = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/auth/instagram/me`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+
+        setInstagramProfile({
+          name: data?.username ?? 'Instagram User',
+          picture: '',
+        });
+        setSelectedPlatform('instagram');
+        setView('create');
+      } catch (error) {
+        console.error('No pudimos recuperar el perfil de Instagram:', error);
+      }
+    };
+
+    syncInstagramProfile();
+  }, [apiBaseUrl]);
+
   const handleStartFlow = () => {
     setAuthMessage('');
     setPlatformMessage('');
@@ -106,6 +157,10 @@ export default function App() {
 
   const handleLinkedinLogin = () => {
     window.location.assign(`${apiBaseUrl}/api/auth/linkedin`);
+  };
+
+  const handleInstagramLogin = () => {
+    window.location.assign(`${apiBaseUrl}/api/auth/instagram`);
   };
 
   const handleBackToHome = () => {
@@ -135,10 +190,12 @@ export default function App() {
       return;
     }
 
-    const nextPlatformName = platform === 'tiktok' ? 'TikTok' : 'Instagram';
-    setPlatformMessage(
-      `${nextPlatformName} va a aparecer aca cuando tengamos su documentacion y las API keys listas.`
-    );
+    if (platform === 'instagram') {
+      handleInstagramLogin();
+      return;
+    }
+
+    setPlatformMessage('TikTok va a aparecer aca cuando tengamos su documentacion y las API keys listas.');
   };
 
   const handleGeneratePost = async () => {
@@ -221,11 +278,18 @@ export default function App() {
       return;
     }
 
+    if (selectedPlatform === 'instagram' && !generatedPost.imageUrl) {
+      setPublishMessage('Instagram requiere una imagen. Volvé, subí una imagen y volvé a generar el post.');
+      return;
+    }
+
     setIsPublishing(true);
     setPublishMessage('');
 
+    const endpoint = selectedPlatform === 'instagram' ? '/api/posts/publish/instagram' : '/api/posts/publish';
+
     try {
-      const response = await fetch(`${apiBaseUrl}/api/posts/publish`, {
+      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -238,17 +302,17 @@ export default function App() {
 
       const data = await response.json();
 
-      console.log('Respuesta del backend al publicar en LinkedIn:', data);
+      console.log(`Respuesta del backend al publicar en ${platformLabel}:`, data);
 
       if (!response.ok) {
-        setPublishMessage(data?.error ?? 'No pudimos publicar el post en LinkedIn.');
+        setPublishMessage(data?.error ?? `No pudimos publicar el post en ${platformLabel}.`);
         return;
       }
 
-      setPublishMessage('El post se publico correctamente en LinkedIn.');
+      setPublishMessage(`El post se publico correctamente en ${platformLabel}.`);
     } catch (error) {
-      console.error('Error publicando el post en LinkedIn:', error);
-      setPublishMessage('Hubo un error de red al intentar publicar en LinkedIn.');
+      console.error(`Error publicando el post en ${platformLabel}:`, error);
+      setPublishMessage(`Hubo un error de red al intentar publicar en ${platformLabel}.`);
     } finally {
       setIsPublishing(false);
     }
@@ -268,6 +332,8 @@ export default function App() {
           <CreateView
             prompt={prompt}
             selectedImage={selectedImage}
+            platformLabel={platformLabel}
+            requiresImage={selectedPlatform === 'instagram'}
             authMessage={view === 'create' ? authMessage : ''}
             submitMessage={submitMessage}
             isSubmitting={isSubmitting}
@@ -286,22 +352,23 @@ export default function App() {
       </div>
       <LoadingOverlay
         isVisible={isSubmitting || isPublishing}
-        eyebrow={isPublishing ? 'Publicando en LinkedIn' : 'Generando con Gemini'}
+        eyebrow={isPublishing ? `Publicando en ${platformLabel}` : 'Generando con Gemini'}
         title={
           isPublishing
             ? 'Estamos publicando tu post'
-            : `Estamos armando tu post para ${selectedPlatform === 'linkedin' ? 'LinkedIn' : 'la plataforma elegida'}`
+            : `Estamos armando tu post para ${platformLabel}`
         }
         description={
           isPublishing
-            ? 'Subiendo la imagen y creando la publicación en la cuenta autenticada de LinkedIn.'
+            ? `Subiendo la imagen y creando la publicación en la cuenta autenticada de ${platformLabel}.`
             : 'Analizando el contexto y la imagen para mostrarte una vista previa antes de publicar.'
         }
       />
       <PostPreviewOverlay
         isVisible={isPreviewOpen}
         post={generatedPost}
-        linkedinProfile={linkedinProfile}
+        profile={selectedPlatform === 'instagram' ? instagramProfile : linkedinProfile}
+        platformLabel={platformLabel}
         onClose={() => setIsPreviewOpen(false)}
         onPublish={handlePublishPost}
         isPublishing={isPublishing}

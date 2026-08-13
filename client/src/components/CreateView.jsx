@@ -4,6 +4,8 @@ export default function CreateView({
   isSubmitting,
   prompt,
   selectedImage,
+  platformLabel = 'LinkedIn',
+  requiresImage = false,
   onBack,
   onGenerate,
   onImageChange,
@@ -16,7 +18,7 @@ export default function CreateView({
         <h1 className="create__title">Prepará tu idea antes de enviarla a la IA</h1>
         <p className="create__text">
           Subí una imagen y sumá contexto para después generar un post listo para
-          LinkedIn.
+          {' '}{platformLabel}.
         </p>
         {authMessage ? <p className="app__notice app__notice--success">{authMessage}</p> : null}
         {submitMessage ? <p className="app__notice app__notice--info">{submitMessage}</p> : null}
@@ -25,8 +27,9 @@ export default function CreateView({
           <div className="create__upload">
             <span className="create__uploadTitle">Imagen de referencia</span>
             <p className="create__uploadText">
-              Elegí una imagen para acompañar el contexto que le vas a mandar a
-              Gemini.
+              {requiresImage
+                ? `${platformLabel} requiere una imagen para poder publicar el post.`
+                : 'Elegí una imagen para acompañar el contexto que le vas a mandar a Gemini.'}
             </p>
 
             <label className="create__uploadButton" htmlFor="image-upload">

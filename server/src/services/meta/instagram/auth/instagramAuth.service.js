@@ -1,32 +1,33 @@
 import crypto from 'crypto';
 import { parseCookies, buildCookie, buildClearCookie } from '../../../../utils/cookies.js';
 
-const INSTAGRAM_AUTH_URL = 'https://www.instagram.com/oauth/authorize';
-const INSTAGRAM_TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
-const INSTAGRAM_LONG_LIVED_TOKEN_URL = 'https://graph.instagram.com/access_token';
-const INSTAGRAM_GRAPH_BASE_URL = 'https://graph.instagram.com';
+const GRAPH_API_VERSION = 'v25.0';
+const FACEBOOK_AUTH_URL = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`;
+const GRAPH_API_BASE_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 
-const OAUTH_SCOPE = 'instagram_business_basic,instagram_business_content_publish';
+// Instagram publishing via a linked Facebook Page — see
+// https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login
+const OAUTH_SCOPE = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement';
 
 const STATE_COOKIE_NAME       = 'instagram_oauth_state';
 const ACCESS_TOKEN_COOKIE_NAME = 'instagram_access_token';
 const USER_ID_COOKIE_NAME     = 'instagram_user_id';
 const USERNAME_COOKIE_NAME    = 'instagram_username';
 
-const STATE_COOKIE_MAX_AGE_SECONDS    = 10 * 60;
-const LONG_LIVED_TOKEN_MAX_AGE_SECONDS = 55 * 24 * 60 * 60; // long-lived tokens last ~60 days
+const STATE_COOKIE_MAX_AGE_SECONDS     = 10 * 60;
+const LONG_LIVED_TOKEN_MAX_AGE_SECONDS = 55 * 24 * 60 * 60; // long-lived Page tokens last ~60 days
 
 /* ─── Helpers ──────────────────────────────────────────────────────────── */
 
 const getFrontendUrl = () => process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
 const getRequiredEnv = () => {
-  const appId       = process.env.INSTAGRAM_APP_ID;
-  const appSecret    = process.env.INSTAGRAM_SECRET;
-  const redirectUri  = process.env.INSTAGRAM_REDIRECT_URI;
+  const appId       = process.env.META_APP_ID;
+  const appSecret   = process.env.META_APP_SECRET;
+  const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
 
   if (!appId || !appSecret || !redirectUri) {
-    throw new Error('Instagram OAuth environment variables are not fully configured');
+    throw new Error('Facebook/Instagram OAuth environment variables are not fully configured');
   }
 
   return { appId, appSecret, redirectUri };
@@ -53,7 +54,7 @@ export const buildOAuthLoginUrl = state => {
     scope: OAUTH_SCOPE,
     state,
   });
-  return `${INSTAGRAM_AUTH_URL}?${params.toString()}`;
+  return `${FACEBOOK_AUTH_URL}?${params.toString()}`;
 };
 
 export const getStoredOAuthState = req => {
@@ -100,43 +101,36 @@ export const exchangeCodeForToken = async code => {
   const params = new URLSearchParams({
     client_id: appId,
     client_secret: appSecret,
-    grant_type: 'authorization_code',
     redirect_uri: redirectUri,
     code,
   });
 
-  const response = await fetch(INSTAGRAM_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-  });
-  const data = await response.json();
-
-  if (!response.ok || !data.access_token || !data.user_id) {
-    console.error('Instagram token exchange failed:', data);
-    throw new Error('Failed to exchange authorization code for Instagram access token');
-  }
-
-  return {
-    shortLivedAccessToken: data.access_token,
-    userId: String(data.user_id),
-  };
-};
-
-export const exchangeForLongLivedToken = async shortLivedAccessToken => {
-  const { appSecret } = getRequiredEnv();
-  const params = new URLSearchParams({
-    grant_type: 'ig_exchange_token',
-    client_secret: appSecret,
-    access_token: shortLivedAccessToken,
-  });
-
-  const response = await fetch(`${INSTAGRAM_LONG_LIVED_TOKEN_URL}?${params.toString()}`);
+  const response = await fetch(`${GRAPH_API_BASE_URL}/oauth/access_token?${params.toString()}`);
   const data = await response.json();
 
   if (!response.ok || !data.access_token) {
-    console.error('Instagram long-lived token exchange failed:', data);
-    throw new Error('Failed to exchange Instagram access token for a long-lived token');
+    console.error('Facebook token exchange failed:', data);
+    throw new Error('Failed to exchange authorization code for a Facebook access token');
+  }
+
+  return { accessToken: data.access_token };
+};
+
+export const exchangeForLongLivedToken = async shortLivedAccessToken => {
+  const { appId, appSecret } = getRequiredEnv();
+  const params = new URLSearchParams({
+    grant_type: 'fb_exchange_token',
+    client_id: appId,
+    client_secret: appSecret,
+    fb_exchange_token: shortLivedAccessToken,
+  });
+
+  const response = await fetch(`${GRAPH_API_BASE_URL}/oauth/access_token?${params.toString()}`);
+  const data = await response.json();
+
+  if (!response.ok || !data.access_token) {
+    console.error('Facebook long-lived token exchange failed:', data);
+    throw new Error('Failed to exchange Facebook access token for a long-lived token');
   }
 
   return {
@@ -145,23 +139,62 @@ export const exchangeForLongLivedToken = async shortLivedAccessToken => {
   };
 };
 
-export const fetchInstagramUserInfo = async (accessToken, userId) => {
-  const params = new URLSearchParams({
-    fields: 'id,username,account_type',
-    access_token: accessToken,
+// Walks the user's Facebook Pages to find one with a linked Instagram
+// professional account, since Instagram permissions flow through the Page.
+export const resolveInstagramBusinessAccount = async longLivedUserToken => {
+  const pagesParams = new URLSearchParams({
+    fields: 'id,name,access_token',
+    access_token: longLivedUserToken,
   });
 
-  const response = await fetch(`${INSTAGRAM_GRAPH_BASE_URL}/${userId}?${params.toString()}`);
-  const data = await response.json();
+  const pagesResponse = await fetch(`${GRAPH_API_BASE_URL}/me/accounts?${pagesParams.toString()}`);
+  const pagesData = await pagesResponse.json();
 
-  if (!response.ok || !data.id) {
-    console.error('Instagram profile fetch failed:', data);
-    throw new Error('Failed to fetch Instagram user profile');
+  if (!pagesResponse.ok) {
+    console.error('Facebook Pages lookup failed:', pagesData);
+    throw new Error('Failed to fetch your Facebook Pages');
   }
 
-  return {
-    userId: String(data.id),
-    username: data.username ?? '',
-    accountType: data.account_type ?? '',
-  };
+  const pages = pagesData.data ?? [];
+
+  if (pages.length === 0) {
+    throw new Error(
+      'No Facebook Page found for this account. Instagram publishing requires a Facebook Page linked to your Instagram professional account.'
+    );
+  }
+
+  for (const page of pages) {
+    const igParams = new URLSearchParams({
+      fields: 'instagram_business_account',
+      access_token: page.access_token,
+    });
+
+    const igResponse = await fetch(`${GRAPH_API_BASE_URL}/${page.id}?${igParams.toString()}`);
+    const igData = await igResponse.json();
+
+    const igAccountId = igData?.instagram_business_account?.id;
+
+    if (igResponse.ok && igAccountId) {
+      const usernameParams = new URLSearchParams({
+        fields: 'id,username',
+        access_token: page.access_token,
+      });
+
+      const usernameResponse = await fetch(`${GRAPH_API_BASE_URL}/${igAccountId}?${usernameParams.toString()}`);
+      const usernameData = await usernameResponse.json();
+
+      if (!usernameResponse.ok || !usernameData.id) {
+        console.error('Instagram profile fetch failed:', usernameData);
+        throw new Error('Failed to fetch the linked Instagram professional account');
+      }
+
+      return {
+        pageAccessToken: page.access_token,
+        igUserId: String(usernameData.id),
+        username: usernameData.username ?? '',
+      };
+    }
+  }
+
+  throw new Error('No Instagram professional account is linked to any of your Facebook Pages.');
 };

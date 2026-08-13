@@ -1,4 +1,4 @@
-const INSTAGRAM_GRAPH_BASE_URL = 'https://graph.instagram.com';
+const INSTAGRAM_GRAPH_BASE_URL = 'https://graph.facebook.com/v25.0';
 
 const CONTAINER_POLL_INTERVAL_MS = 1500;
 const CONTAINER_POLL_MAX_ATTEMPTS = 10;

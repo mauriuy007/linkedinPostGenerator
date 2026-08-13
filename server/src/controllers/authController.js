@@ -21,8 +21,8 @@ import {
   getInstagramSessionFromRequest,
   getStoredOAuthState as getStoredInstagramOAuthState,
   exchangeCodeForToken as exchangeInstagramCodeForToken,
-  exchangeForLongLivedToken,
-  fetchInstagramUserInfo,
+  exchangeForLongLivedToken as exchangeForLongLivedInstagramToken,
+  resolveInstagramBusinessAccount,
   buildFrontendRedirectUrl as buildInstagramFrontendRedirectUrl,
 } from '../services/meta/instagram/auth/instagramAuth.service.js';
 
@@ -153,19 +153,22 @@ export const instagramCallback = async (req, res) => {
   }
 
   try {
-    const { shortLivedAccessToken, userId } = await exchangeInstagramCodeForToken(code);
-    const { accessToken, expiresIn } = await exchangeForLongLivedToken(shortLivedAccessToken);
-    const { username } = await fetchInstagramUserInfo(accessToken, userId);
+    const { accessToken: shortLivedToken } = await exchangeInstagramCodeForToken(code);
+    const { accessToken: longLivedUserToken, expiresIn } = await exchangeForLongLivedInstagramToken(shortLivedToken);
+    const { pageAccessToken, igUserId, username } = await resolveInstagramBusinessAccount(longLivedUserToken);
 
-    console.log('Instagram login successful for:', userId);
+    console.log('Instagram login successful for:', igUserId);
 
     res.setHeader('Set-Cookie', [
       clearInstagramStateCookieHeader(req),
-      ...buildInstagramSessionCookieHeaders({ accessToken, userId, username, maxAge: expiresIn }, req),
+      ...buildInstagramSessionCookieHeaders(
+        { accessToken: pageAccessToken, userId: igUserId, username, maxAge: expiresIn },
+        req
+      ),
     ]);
 
     return res.redirect(
-      buildInstagramFrontendRedirectUrl('/', { instagram: 'ok', instagramId: userId, name: username })
+      buildInstagramFrontendRedirectUrl('/', { instagram: 'ok', instagramId: igUserId, name: username })
     );
   } catch (err) {
     console.error('Error during Instagram auth:', err);

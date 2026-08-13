@@ -24,12 +24,12 @@ const platformOptions = [
   {
     id: 'instagram',
     name: 'Instagram',
-    description: 'Contenido visual y publicaciones automatizadas en camino.',
-    status: 'Proximamente',
+    description: 'Conecta tu cuenta y publica contenido visual con IA.',
+    status: 'Disponible',
     accentClass: 'platforms__slice--instagram',
     labelPathId: 'lbl-instagram',
     labelOffset: '50%',
-    isAvailable: false,
+    isAvailable: true,
   },
 ];
 
@@ -53,7 +53,7 @@ const TICKS = Array.from({ length: 24 }, (_, i) => {
 function LinkedInIcon() {
   return (
     <g>
-      <rect x="1" y="1" width="30" height="30" rx="4" stroke="currentColor" strokeWidth="2.2" fill="rgba(0,0,0,0.55)" />
+      <rect x="1" y="1" width="30" height="30" rx="4" stroke="currentColor" strokeWidth="2.2" fill="rgba(255,255,255,0.8)" />
       <rect x="7" y="7" width="4" height="4" rx="2" fill="currentColor" />
       <rect x="7" y="14" width="4" height="12" rx="2" fill="currentColor" />
       <rect x="15" y="14" width="4" height="12" rx="2" fill="currentColor" />
@@ -79,7 +79,7 @@ function TikTokIcon() {
 function InstagramIcon() {
   return (
     <g>
-      <rect x="3" y="7" width="26" height="20" rx="4.5" stroke="currentColor" strokeWidth="2.2" fill="rgba(0,0,0,0.5)" />
+      <rect x="3" y="7" width="26" height="20" rx="4.5" stroke="currentColor" strokeWidth="2.2" fill="rgba(255,255,255,0.8)" />
       <circle cx="16" cy="17" r="5.5" stroke="currentColor" strokeWidth="2.2" fill="none" />
       <path d="M11 7 L11 4.5 L21 4.5 L21 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
       <circle cx="23.5" cy="11" r="1.6" fill="currentColor" />
@@ -114,8 +114,8 @@ export default function PlatformSelectView({
           <span className="platforms__eyebrow">Selector de plataforma</span>
           <h1 className="platforms__title">Elegí el destino</h1>
           <p className="platforms__text">
-            Seleccioná un segmento del radial. LinkedIn está operativo;
-            Instagram y TikTok se habilitarán próximamente.
+            Seleccioná un segmento del radial. LinkedIn e Instagram están
+            operativos; TikTok se habilitará próximamente.
           </p>
           {noticeMessage ? <p className="app__notice app__notice--info">{noticeMessage}</p> : null}
         </div>
@@ -184,7 +184,7 @@ export default function PlatformSelectView({
                   <g
                     key={platform.id}
                     className={`platforms__icon platforms__icon--${platform.id}`}
-                    style={{ color: isActive ? 'rgba(220,224,236,0.9)' : 'rgba(200,202,214,0.4)' }}
+                    style={{ color: isActive ? 'rgba(20,21,31,0.85)' : 'rgba(20,21,31,0.4)' }}
                     transform={`translate(${cx},${cy}) scale(${ICON_SCALE}) translate(${ICON_OFFSET},${ICON_OFFSET})`}
                   >
                     {platform.id === 'linkedin'  && <LinkedInIcon />}

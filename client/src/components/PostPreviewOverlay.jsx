@@ -11,7 +11,8 @@ const formatPostContent = (content) =>
 export default function PostPreviewOverlay({
   isVisible,
   post,
-  linkedinProfile,
+  profile,
+  platformLabel = 'LinkedIn',
   onClose,
   onPublish,
   isPublishing,
@@ -21,9 +22,9 @@ export default function PostPreviewOverlay({
     return null;
   }
 
-  const displayName = linkedinProfile?.name ?? post.authorUsername ?? 'LinkedIn User';
-  const profilePicture = linkedinProfile?.picture ?? '';
-  const avatarFallback = displayName.slice(0, 1)?.toUpperCase() ?? 'L';
+  const displayName = profile?.name ?? post.authorUsername ?? `${platformLabel} User`;
+  const profilePicture = profile?.picture ?? '';
+  const avatarFallback = displayName.slice(0, 1)?.toUpperCase() ?? platformLabel.slice(0, 1);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Vista previa del post">
@@ -47,7 +48,7 @@ export default function PostPreviewOverlay({
             )}
             <div>
               <h3 className="previewPost__author">{displayName}</h3>
-              <p className="previewPost__meta">Vista previa del post que se publicará en LinkedIn</p>
+              <p className="previewPost__meta">Vista previa del post que se publicará en {platformLabel}</p>
             </div>
           </div>
 
