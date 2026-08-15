@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* ─── Custom properties ─────────────────────────────────── */
 :root {
@@ -15,7 +15,8 @@
   --c-tiktok:    #5ee7ee;
   --c-instagram: #d62e70;
 
-  font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: var(--c-text);
   background: var(--c-bg);
 }
@@ -58,16 +59,26 @@ body { min-height: 100vh; }
   will-change: transform;
 }
 
-.app__track--home      { transform: translateX(0); }
+.app__track--landing   { transform: translateX(0); }
 .app__track--platforms { transform: translateX(-33.3334%); }
 .app__track--create    { transform: translateX(-66.6667%); }
 
-.home, .platforms, .create {
+.platforms, .create {
   width: 33.3334%;
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
+  flex-shrink: 0;
+}
+
+/* The landing view is a tall, internally-scrolling page (hero + selling
+   sections + the Create/Publish hook), not a single centered screen. */
+.landing {
+  width: 33.3334%;
+  height: 100vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
   flex-shrink: 0;
 }
 
@@ -102,25 +113,272 @@ body { min-height: 100vh; }
   transform: translateX(0) scale(1);
 }
 
-.app__track--platforms .home__content,
-.app__track--create .home__content {
-  opacity: 0;
-  transform: translateX(-40px) scale(0.96);
-  transition: transform 560ms cubic-bezier(0.22,1,0.36,1), opacity 420ms ease;
-}
-
 .app__track--create .platforms__panel {
   opacity: 0.25;
   transform: translateX(-52px) scale(0.98);
 }
 
-/* ─── Home view ─────────────────────────────────────────── */
+/* ─── Landing view ───────────────────────────────────────── */
+.landing {
+  --land-accent:    #6d5efc;
+  --land-accent-2:  #14b8c4;
+  --land-text:      #14151f;
+  --land-text-dim:  #5b5e73;
+  --land-line:      rgba(20,21,31,0.1);
+}
+
+/* ── Hero ── */
+.landing__hero {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 900px 520px at 14% -8%, rgba(109,94,252,0.18), transparent 60%),
+    radial-gradient(ellipse 760px 520px at 104% 22%, rgba(20,184,196,0.16), transparent 55%),
+    linear-gradient(180deg, #fdfdff 0%, #f4f5ff 55%, #eef2ff 100%);
+}
+
+.landing__heroContent {
+  width: min(100%, 760px);
+}
+
+.landing__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 6px 14px;
+  border: 1px solid rgba(109,94,252,0.28);
+  border-radius: 999px;
+  background: rgba(109,94,252,0.08);
+  color: var(--land-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.landing__title {
+  margin: 0 0 18px;
+  color: var(--land-text);
+  font-size: clamp(2.2rem, 5.4vw, 4rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.landing__title em {
+  font-style: normal;
+  background: linear-gradient(100deg, var(--land-accent) 10%, var(--land-accent-2) 90%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.landing__subtitle {
+  margin: 0 0 36px;
+  max-width: 620px;
+  color: var(--land-text-dim);
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.65;
+}
+
+.landing__highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--land-line);
+}
+
+.landing__highlightTitle {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--land-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.landing__highlightText {
+  margin: 0;
+  color: var(--land-text-dim);
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.landing__cta {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 999px;
+  padding: 15px 30px;
+  background: linear-gradient(100deg, var(--land-accent) 0%, var(--land-accent-2) 100%);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(109,94,252,0.32);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+.landing__cta-arrow {
+  display: inline-block;
+  margin-left: 12px;
+  transition: transform 200ms ease;
+}
+
+.landing__cta:hover {
+  box-shadow: 0 16px 34px rgba(109,94,252,0.42);
+  transform: translateY(-1px);
+}
+.landing__cta:hover .landing__cta-arrow { transform: translateY(3px); }
+.landing__cta:active { transform: scale(0.98); }
+
+.landing__scrollHint {
+  position: absolute;
+  left: 50%;
+  bottom: 36px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--land-text-dim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.landing__scrollHintArrow {
+  font-size: 1.1rem;
+  animation: scroll-hint-bounce 1.8s ease-in-out infinite;
+}
+
+@keyframes scroll-hint-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(6px); }
+}
+
+/* ── Selling sections ── */
+.landing__section {
+  padding: 96px 24px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+}
+
+.landing__section--alt {
+  background: #f6f7fd;
+}
+
+.landing__sectionInner {
+  width: min(100%, 1000px);
+}
+
+.landing__sectionEyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--land-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.landing__sectionTitle {
+  margin: 0 0 44px;
+  max-width: 640px;
+  color: var(--land-text);
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.landing__benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 28px;
+}
+
+.landing__benefitTitle {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--land-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.landing__benefitText {
+  margin: 0;
+  color: var(--land-text-dim);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.landing__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 32px;
+}
+
+.landing__stepNumber {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: linear-gradient(100deg, var(--land-accent) 0%, var(--land-accent-2) 100%);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.landing__stepTitle {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--land-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.landing__stepText {
+  margin: 0;
+  color: var(--land-text-dim);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* ─── Home view (final section inside the landing scroll) ──── */
 .home {
   --home-accent:    #6d5efc;
   --home-accent-2:  #14b8c4;
   --home-text:      #14151f;
   --home-text-dim:  #5b5e73;
   --home-line:      rgba(20,21,31,0.12);
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
   background:
     radial-gradient(ellipse 900px 520px at 14% -8%, rgba(109,94,252,0.18), transparent 60%),
     radial-gradient(ellipse 760px 520px at 104% 22%, rgba(20,184,196,0.16), transparent 55%),

@@ -1,6 +1,6 @@
-export default function HomeView({ onStart, authMessage }) {
+export default function HomeView({ onStart, authMessage, id }) {
   return (
-    <section className="home">
+    <section className="home" id={id}>
       <div className="home__content">
         {authMessage ? <p className="app__notice app__notice--error">{authMessage}</p> : null}
 

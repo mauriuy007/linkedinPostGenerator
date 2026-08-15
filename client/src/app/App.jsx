@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import CreateView from '../components/CreateView.jsx';
-import HomeView from '../components/HomeView.jsx';
+import LandingView from '../components/LandingView.jsx';
 import LoadingOverlay from '../components/LoadingOverlay.jsx';
 import PlatformSelectView from '../components/PlatformSelectView.jsx';
 import PostPreviewOverlay from '../components/PostPreviewOverlay.jsx';
@@ -20,7 +20,7 @@ const fileToBase64 = (file) =>
   });
 
 export default function App() {
-  const [view, setView] = useState('home');
+  const [view, setView] = useState('landing');
   const [platformMessage, setPlatformMessage] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState('linkedin');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -61,7 +61,8 @@ export default function App() {
 
     if (linkedinStatus === 'error') {
       setAuthMessage(reason ?? "We couldn't complete LinkedIn login.");
-      setView('home');
+      setView('landing');
+      document.getElementById('get-started')?.scrollIntoView();
     }
 
     if (instagramStatus === 'ok') {
@@ -80,7 +81,8 @@ export default function App() {
 
     if (instagramStatus === 'error') {
       setAuthMessage(reason ?? "We couldn't complete Instagram login.");
-      setView('home');
+      setView('landing');
+      document.getElementById('get-started')?.scrollIntoView();
     }
 
     if (linkedinStatus || instagramStatus) {
@@ -163,8 +165,8 @@ export default function App() {
     window.location.assign(`${apiBaseUrl}/api/auth/instagram`);
   };
 
-  const handleBackToHome = () => {
-    setView('home');
+  const handleBackToLanding = () => {
+    setView('landing');
     setAuthMessage('');
     setPlatformMessage('');
     setSubmitMessage('');
@@ -322,11 +324,11 @@ export default function App() {
     <main className="app">
       <div className="app__viewport">
         <div className={`app__track app__track--${view}`}>
-          <HomeView onStart={handleStartFlow} authMessage={view === 'home' ? authMessage : ''} />
+          <LandingView onStart={handleStartFlow} authMessage={view === 'landing' ? authMessage : ''} />
           <PlatformSelectView
             noticeMessage={view === 'platforms' ? platformMessage : ''}
             selectedPlatform={selectedPlatform}
-            onBack={handleBackToHome}
+            onBack={handleBackToLanding}
             onSelectPlatform={handlePlatformSelection}
           />
           <CreateView
