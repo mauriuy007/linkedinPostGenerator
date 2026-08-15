@@ -4,13 +4,13 @@ export default function LoadingOverlay({ isVisible, title, description, eyebrow 
   }
 
   return (
-    <div className="overlay" role="status" aria-live="polite" aria-label="Generando post">
+    <div className="overlay" role="status" aria-live="polite" aria-label="Generating post">
       <div className="loadingCard">
         <div className="loadingCard__spinner" />
-        <span className="loadingCard__eyebrow">{eyebrow ?? 'Generando con Gemini'}</span>
-        <h2 className="loadingCard__title">{title ?? 'Estamos armando tu post para LinkedIn'}</h2>
+        <span className="loadingCard__eyebrow">{eyebrow ?? 'Generating with Gemini'}</span>
+        <h2 className="loadingCard__title">{title ?? "We're putting together your post for LinkedIn"}</h2>
         <p className="loadingCard__text">
-          {description ?? 'Analizando el contexto y la imagen para mostrarte una vista previa antes de publicar.'}
+          {description ?? 'Analyzing the context and image to show you a preview before publishing.'}
         </p>
       </div>
     </div>

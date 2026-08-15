@@ -9,16 +9,16 @@ export default function HomeView({ onStart, authMessage }) {
         </div>
 
         <h1 className="home__title">
-          Creá.<br />
-          <em>Publicá.</em>
+          Create.<br />
+          <em>Publish.</em>
         </h1>
 
         <p className="home__subtitle">
-          Seleccioná una plataforma y generá contenido con IA
+          Choose a platform and generate content with AI
         </p>
 
         <button className="home__cta" type="button" onClick={onStart}>
-          Comenzar
+          Get started
           <span className="home__cta-arrow">→</span>
         </button>
       </div>

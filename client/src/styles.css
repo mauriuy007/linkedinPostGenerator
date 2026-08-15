@@ -237,9 +237,6 @@ body { min-height: 100vh; }
   --plat-text-dim:     #5b5e73;
   --plat-line:         rgba(20,21,31,0.1);
   --plat-line-strong:  rgba(20,21,31,0.2);
-  --plat-disc-1:       #ffffff;
-  --plat-disc-2:       #f4f5fb;
-  --plat-disc-3:       #eceffb;
   position: relative;
   overflow: hidden;
   background:
@@ -291,232 +288,102 @@ body { min-height: 100vh; }
   line-height: 1.65;
 }
 
-.platforms__arena {
+/* ─── Platform cards ─────────────────────────────────────── */
+.platforms__grid {
   display: grid;
-  place-items: center;
-}
-
-/* ─── Weapon Wheel ───────────────────────────────────────── */
-.platforms__wheel {
-  position: relative;
-  width: min(100%, 520px);
-  aspect-ratio: 1;
-  margin: 0 auto;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9) 0%, transparent 45%),
-    radial-gradient(circle, var(--plat-disc-1) 0%, var(--plat-disc-2) 55%, var(--plat-disc-3) 100%);
-  box-shadow:
-    0 0 0 1px rgba(20,21,31,0.06),
-    0 30px 90px rgba(109,94,252,0.18),
-    inset 0 0 70px rgba(109,94,252,0.05);
-  overflow: hidden;
-}
-
-/* Outer decorative ring glow */
-.platforms__wheel::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 50%;
-  border: 1px solid rgba(20,21,31,0.08);
-  pointer-events: none;
-  z-index: 4;
-}
-
-/* Segment buttons */
-.platforms__slice {
-  position: absolute;
-  inset: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  transition: filter 200ms ease;
-}
-
-.platforms__slice:hover {
-  z-index: 2;
-  filter: brightness(1.04);
-}
-
-.platforms__slice--active {
-  z-index: 2;
-}
-
-/* Tint overlay */
-.platforms__slice::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 200ms ease;
-  pointer-events: none;
-}
-
-/* Hub cutout — masks the center of each slice to match the hub */
-.platforms__slice::after {
-  content: '';
-  position: absolute;
-  inset: 30%;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--plat-disc-1) 0%, var(--plat-disc-2) 100%);
-  pointer-events: none;
-}
-
-/* ── Equal-thirds clip-paths (120° each) ── */
-.platforms__slice--linkedin  { clip-path: polygon(50% 50%, 50% 0%, 75% 6.7%, 93.3% 25%, 100% 50%, 93.3% 75%); }
-.platforms__slice--tiktok    { clip-path: polygon(50% 50%, 93.3% 75%, 75% 93.3%, 50% 100%, 25% 93.3%, 6.7% 75%); }
-.platforms__slice--instagram { clip-path: polygon(50% 50%, 6.7% 75%, 0% 50%, 6.7% 25%, 25% 6.7%, 50% 0%); }
-
-/* Per-platform hover/active tints */
-.platforms__slice--linkedin:hover::before,
-.platforms__slice--linkedin.platforms__slice--active::before {
-  background: radial-gradient(circle at 80% 28%, rgba(10,102,194,0.28) 0%, rgba(10,102,194,0.08) 45%, transparent 68%);
-  opacity: 1;
-}
-
-.platforms__slice--tiktok:hover::before,
-.platforms__slice--tiktok.platforms__slice--active::before {
-  background: radial-gradient(circle at 50% 88%, rgba(20,184,196,0.26) 0%, rgba(20,184,196,0.07) 45%, transparent 68%);
-  opacity: 1;
-}
-
-.platforms__slice--instagram:hover::before,
-.platforms__slice--instagram.platforms__slice--active::before {
-  background: radial-gradient(circle at 18% 28%, rgba(214,46,112,0.24) 0%, rgba(214,46,112,0.07) 45%, transparent 68%);
-  opacity: 1;
-}
-
-/* Segment separator lines + icons + rings */
-.platforms__labels {
-  position: absolute;
-  inset: 0;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
   width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 3;
-  overflow: visible;
+  max-width: 900px;
 }
 
-/* Outer decorative ring */
-.platforms__outerRing {
-  fill: none;
-  stroke: var(--plat-line);
-  stroke-width: 0.4;
+.platformCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 180px;
+  padding: 26px;
+  border: 1px solid var(--plat-line-strong);
+  border-radius: 20px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 
-/* Inner hub ring */
-.platforms__innerRing {
-  fill: none;
-  stroke: var(--plat-line-strong);
-  stroke-width: 0.5;
+.platformCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--plat-accent);
+  box-shadow: 0 20px 40px rgba(109,94,252,0.16);
 }
 
-/* Divider lines between segments */
-.platforms__divider {
-  stroke: var(--plat-line-strong);
-  stroke-width: 0.4;
+.platformCard--selected {
+  border-color: var(--plat-accent);
+  box-shadow: 0 20px 40px rgba(109,94,252,0.2);
 }
 
-/* Tick marks on outer ring */
-.platforms__tick--major {
-  stroke: var(--plat-line-strong);
-  stroke-width: 0.55;
+.platformCard--soon {
+  opacity: 0.6;
 }
 
-.platforms__tick--minor {
-  stroke: var(--plat-line);
-  stroke-width: 0.35;
-}
-
-/* Platform icons in segments (active/inactive color set inline per-icon in JSX) */
-.platforms__icon {
-  transition: color 200ms ease;
-}
-
-/* Curved text labels */
-.platforms__curveLabel {
-  fill: rgba(20,21,31,0.32);
-  font-size: 4.2px;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  transition: fill 180ms ease;
-}
-
-.platforms__curveLabel textPath { text-anchor: middle; }
-
-.platforms__curveLabel--active {
-  fill: rgba(20,21,31,0.85);
-}
-
-/* ─── Hub center ─────────────────────────────────────────── */
-.platforms__hub {
-  position: absolute;
-  inset: 50%;
-  width: 34%;
-  height: 34%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
+.platformCard__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  padding: 20px;
-  text-align: center;
-  background:
-    radial-gradient(circle at 40% 30%, rgba(255,255,255,0.9), transparent 55%),
-    radial-gradient(circle, #ffffff 0%, #f5f6fc 60%, #eef0fb 100%);
-  box-shadow:
-    0 0 0 1px rgba(20,21,31,0.07),
-    0 0 0 3px #ffffff,
-    0 18px 40px rgba(109,94,252,0.16);
-  z-index: 4;
+  color: #fff;
 }
 
-.platforms__coreLabel {
-  color: var(--plat-text-dim);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  line-height: 1;
-  margin-bottom: 2px;
+.platformCard__icon svg {
+  width: 26px;
+  height: 26px;
 }
 
-.platforms__coreValue {
+.platformCard--linkedin .platformCard__icon {
+  background: linear-gradient(135deg, #0a66c2, #0b4f95);
+}
+
+.platformCard--instagram .platformCard__icon {
+  background: linear-gradient(135deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4);
+}
+
+.platformCard--tiktok .platformCard__icon {
+  background: linear-gradient(135deg, #1f1f24, #000000);
+}
+
+.platformCard__name {
   color: var(--plat-text);
-  font-size: clamp(0.9rem, 1.5vw, 1.3rem);
+  font-size: 1.05rem;
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
-.platforms__hubStatus {
-  display: inline-flex;
-  width: fit-content;
-  border-radius: 999px;
-  padding: 3px 10px;
-  background: rgba(109,94,252,0.08);
-  border: 1px solid rgba(109,94,252,0.25);
-  color: var(--plat-accent);
-  font-size: 0.58rem;
+.platformCard__description {
+  color: var(--plat-text-dim);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.platformCard__status {
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.platforms__hubDescription {
-  display: none;
+.platformCard__status--available {
+  color: #16a34a;
 }
 
-.platforms__action {
-  color: rgba(20,21,31,0.45);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  line-height: 1.4;
+.platformCard__status--soon {
+  color: var(--plat-text-dim);
 }
 
 /* ─── Back button ────────────────────────────────────────── */
@@ -947,13 +814,10 @@ body { min-height: 100vh; }
   .platforms, .create { padding: 28px 16px; }
   .platforms__intro { padding: 0 4px; }
   .platforms__title { font-size: clamp(1.6rem, 7vw, 3rem); }
-  .platforms__wheel { width: min(100%, 420px); }
-  .platforms__curveLabel { font-size: 5px; }
-  .platforms__hub { width: 36%; height: 36%; padding: 14px; }
 }
 
 @media (max-width: 640px) {
-  .platforms__wheel { width: min(100%, 340px); }
+  .platforms__grid { grid-template-columns: 1fr; }
   .platforms__actions, .create__actions { flex-direction: column; }
   .create__primary, .create__secondary, .create__uploadButton { width: 100%; text-align: center; }
   .overlay { padding: 14px; }

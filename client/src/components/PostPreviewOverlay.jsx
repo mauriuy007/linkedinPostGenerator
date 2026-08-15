@@ -27,15 +27,15 @@ export default function PostPreviewOverlay({
   const avatarFallback = displayName.slice(0, 1)?.toUpperCase() ?? platformLabel.slice(0, 1);
 
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="Vista previa del post">
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Post preview">
       <section className="previewModal">
         <div className="previewModal__header">
           <div>
-            <span className="previewModal__eyebrow">Vista previa</span>
-            <h2 className="previewModal__title">Así se vería tu posteo</h2>
+            <span className="previewModal__eyebrow">Preview</span>
+            <h2 className="previewModal__title">This is how your post would look</h2>
           </div>
           <button className="previewModal__close" type="button" onClick={onClose}>
-            Cerrar
+            Close
           </button>
         </div>
 
@@ -48,12 +48,12 @@ export default function PostPreviewOverlay({
             )}
             <div>
               <h3 className="previewPost__author">{displayName}</h3>
-              <p className="previewPost__meta">Vista previa del post que se publicará en {platformLabel}</p>
+              <p className="previewPost__meta">Preview of the post that will be published to {platformLabel}</p>
             </div>
           </div>
 
           {post.imageUrl ? (
-            <img className="previewPost__image" src={post.imageUrl} alt={post.title ?? 'Imagen del post'} />
+            <img className="previewPost__image" src={post.imageUrl} alt={post.title ?? 'Post image'} />
           ) : null}
 
           <div className="previewPost__content">{formatPostContent(post.content ?? '')}</div>
@@ -62,10 +62,10 @@ export default function PostPreviewOverlay({
 
           <div className="previewPost__actions">
             <button className="previewModal__close" type="button" onClick={onClose} disabled={isPublishing}>
-              Cerrar
+              Close
             </button>
             <button className="previewPost__publish" type="button" onClick={onPublish} disabled={isPublishing}>
-              {isPublishing ? 'Posteando...' : 'Postear'}
+              {isPublishing ? 'Posting...' : 'Post'}
             </button>
           </div>
         </article>
