@@ -1,10 +1,8 @@
-export default function LoadingOverlay({ isVisible, title, description, eyebrow }) {
-  if (!isVisible) {
-    return null;
-  }
+import Overlay from './Overlay.jsx';
 
+export default function LoadingOverlay({ isVisible, title, description, eyebrow }) {
   return (
-    <div className="overlay" role="status" aria-live="polite" aria-label="Generating post">
+    <Overlay isVisible={isVisible} role="status" ariaLive="polite" ariaLabel="Generating post">
       <div className="loadingCard">
         <div className="loadingCard__spinner" />
         <span className="loadingCard__eyebrow">{eyebrow ?? 'Generating with Gemini'}</span>
@@ -13,6 +11,6 @@ export default function LoadingOverlay({ isVisible, title, description, eyebrow 
           {description ?? 'Analyzing the context and image to show you a preview before publishing.'}
         </p>
       </div>
-    </div>
+    </Overlay>
   );
 }
