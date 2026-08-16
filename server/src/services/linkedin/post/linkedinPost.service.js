@@ -19,6 +19,18 @@ const buildVersionedLinkedinHeaders = accessToken => ({
   'Linkedin-Version': LINKEDIN_API_VERSION
 });
 
+// LinkedIn error bodies are usually JSON with a `message` field, but fall
+// back to the raw text so a failure never surfaces as an opaque, generic
+// message with no way to tell what actually went wrong.
+const extractLinkedinErrorMessage = responseText => {
+  try {
+    const data = JSON.parse(responseText);
+    return data?.message || data?.error?.message || responseText;
+  } catch {
+    return responseText;
+  }
+};
+
 const registerImageUpload = async ({ accessToken, memberUrn }) => {
   const response = await fetch(LINKEDIN_ASSETS_URL, {
     method: 'POST',
@@ -47,7 +59,7 @@ const registerImageUpload = async ({ accessToken, memberUrn }) => {
 
   if (!response.ok || !uploadUrl || !asset) {
     console.error('LinkedIn registerUpload failed:', data);
-    throw new Error('LinkedIn image registration failed');
+    throw new Error(`LinkedIn image registration failed: ${data?.message ?? 'unknown error'}`);
   }
 
   return { uploadUrl, asset };
@@ -66,7 +78,7 @@ const uploadImageToLinkedin = async ({ accessToken, uploadUrl, imageBuffer, mime
   if (!response.ok) {
     const errorText = await response.text();
     console.error('LinkedIn binary upload failed:', errorText);
-    throw new Error('LinkedIn image upload failed');
+    throw new Error(`LinkedIn image upload failed: ${extractLinkedinErrorMessage(errorText)}`);
   }
 };
 
@@ -105,7 +117,7 @@ const initializeVideoUpload = async ({ accessToken, memberUrn, fileSizeBytes }) 
 
   if (!response.ok || !video || !uploadInstructions?.length) {
     console.error('LinkedIn video initializeUpload failed:', data);
-    throw new Error('LinkedIn video registration failed');
+    throw new Error(`LinkedIn video registration failed: ${data?.message ?? 'unknown error'}`);
   }
 
   return { video, uploadToken, uploadInstructions };
@@ -128,7 +140,7 @@ const uploadVideoParts = async ({ uploadInstructions, videoBuffer }) =>
       if (!response.ok) {
         const errorText = await response.text();
         console.error('LinkedIn video part upload failed:', errorText);
-        throw new Error('LinkedIn video upload failed');
+        throw new Error(`LinkedIn video upload failed: ${extractLinkedinErrorMessage(errorText)}`);
       }
 
       const etag = response.headers.get('etag')?.replace(/^"|"$/g, '');
@@ -156,7 +168,7 @@ const finalizeVideoUpload = async ({ accessToken, video, uploadToken, uploadedPa
   if (!response.ok) {
     const errorText = await response.text();
     console.error('LinkedIn video finalizeUpload failed:', errorText);
-    throw new Error('LinkedIn video upload could not be finalized');
+    throw new Error(`LinkedIn video upload could not be finalized: ${extractLinkedinErrorMessage(errorText)}`);
   }
 };
 
@@ -262,7 +274,7 @@ export const createLinkedinPost = async ({
 
   if (!response.ok) {
     console.error('LinkedIn ugcPosts failed:', responseText);
-    throw new Error('LinkedIn post creation failed');
+    throw new Error(`LinkedIn post creation failed: ${extractLinkedinErrorMessage(responseText)}`);
   }
 
   return {
