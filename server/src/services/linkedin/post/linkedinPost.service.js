@@ -2,21 +2,10 @@ import { parseDataUrl } from '../../post/imageHost.service.js';
 
 const LINKEDIN_ASSETS_URL = 'https://api.linkedin.com/v2/assets?action=registerUpload';
 const LINKEDIN_UGC_POSTS_URL = 'https://api.linkedin.com/v2/ugcPosts';
-const LINKEDIN_VIDEOS_URL = 'https://api.linkedin.com/rest/videos';
-
-// LinkedIn's versioned REST API (used only for video uploads) requires a
-// Linkedin-Version header in YYYYMM format. Versions are supported for
-// roughly a year after release, so bump this periodically.
-const LINKEDIN_API_VERSION = '202607';
 
 const buildLinkedinHeaders = accessToken => ({
   Authorization: `Bearer ${accessToken}`,
   'X-Restli-Protocol-Version': '2.0.0'
-});
-
-const buildVersionedLinkedinHeaders = accessToken => ({
-  ...buildLinkedinHeaders(accessToken),
-  'Linkedin-Version': LINKEDIN_API_VERSION
 });
 
 // LinkedIn error bodies are usually JSON with a `message` field, but fall
@@ -31,7 +20,13 @@ const extractLinkedinErrorMessage = responseText => {
   }
 };
 
-const registerImageUpload = async ({ accessToken, memberUrn }) => {
+// Registers a media asset (image or video) against the "Share on LinkedIn"
+// product, which is the only product this app is approved for. LinkedIn's
+// newer /rest/videos API requires a separate, more restricted product grant
+// — using it produces a misleading "not owned by author" error instead of a
+// clear permissions error, so video shares go through this same classic
+// assets endpoint as images, just with a different recipe.
+const registerMediaUpload = async ({ accessToken, memberUrn, recipe }) => {
   const response = await fetch(LINKEDIN_ASSETS_URL, {
     method: 'POST',
     headers: {
@@ -40,7 +35,7 @@ const registerImageUpload = async ({ accessToken, memberUrn }) => {
     },
     body: JSON.stringify({
       registerUploadRequest: {
-        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+        recipes: [recipe],
         owner: memberUrn,
         serviceRelationships: [
           {
@@ -59,26 +54,26 @@ const registerImageUpload = async ({ accessToken, memberUrn }) => {
 
   if (!response.ok || !uploadUrl || !asset) {
     console.error('LinkedIn registerUpload failed:', data);
-    throw new Error(`LinkedIn image registration failed: ${data?.message ?? 'unknown error'}`);
+    throw new Error(`LinkedIn media registration failed: ${data?.message ?? 'unknown error'}`);
   }
 
   return { uploadUrl, asset };
 };
 
-const uploadImageToLinkedin = async ({ accessToken, uploadUrl, imageBuffer, mimeType }) => {
+const uploadBinaryToLinkedin = async ({ accessToken, uploadUrl, buffer, mimeType }) => {
   const response = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': mimeType
     },
-    body: imageBuffer
+    body: buffer
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     console.error('LinkedIn binary upload failed:', errorText);
-    throw new Error(`LinkedIn image upload failed: ${extractLinkedinErrorMessage(errorText)}`);
+    throw new Error(`LinkedIn media upload failed: ${extractLinkedinErrorMessage(errorText)}`);
   }
 };
 
@@ -93,99 +88,23 @@ const fetchVideoBuffer = async videoUrl => {
   return Buffer.from(arrayBuffer);
 };
 
-const initializeVideoUpload = async ({ accessToken, memberUrn, fileSizeBytes }) => {
-  const response = await fetch(`${LINKEDIN_VIDEOS_URL}?action=initializeUpload`, {
-    method: 'POST',
-    headers: {
-      ...buildVersionedLinkedinHeaders(accessToken),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      initializeUploadRequest: {
-        owner: memberUrn,
-        fileSizeBytes,
-        uploadCaptions: false,
-        uploadThumbnail: false
-      }
-    })
-  });
-
-  const data = await response.json();
-  const video = data?.value?.video;
-  const uploadToken = data?.value?.uploadToken;
-  const uploadInstructions = data?.value?.uploadInstructions;
-
-  if (!response.ok || !video || !uploadInstructions?.length) {
-    console.error('LinkedIn video initializeUpload failed:', data);
-    throw new Error(`LinkedIn video registration failed: ${data?.message ?? 'unknown error'}`);
-  }
-
-  return { video, uploadToken, uploadInstructions };
-};
-
-// Parts can be uploaded in parallel — LinkedIn only requires that the
-// uploadedPartIds sent to finalizeUpload preserve the original part order,
-// which Promise.all guarantees regardless of resolution order.
-const uploadVideoParts = async ({ uploadInstructions, videoBuffer }) =>
-  Promise.all(
-    uploadInstructions.map(async part => {
-      const chunk = videoBuffer.subarray(part.firstByte, part.lastByte + 1);
-
-      const response = await fetch(part.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/octet-stream' },
-        body: chunk
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('LinkedIn video part upload failed:', errorText);
-        throw new Error(`LinkedIn video upload failed: ${extractLinkedinErrorMessage(errorText)}`);
-      }
-
-      const etag = response.headers.get('etag')?.replace(/^"|"$/g, '');
-
-      if (!etag) {
-        throw new Error('LinkedIn did not return an ETag for an uploaded video part');
-      }
-
-      return etag;
-    })
-  );
-
-const finalizeVideoUpload = async ({ accessToken, video, uploadToken, uploadedPartIds }) => {
-  const response = await fetch(`${LINKEDIN_VIDEOS_URL}?action=finalizeUpload`, {
-    method: 'POST',
-    headers: {
-      ...buildVersionedLinkedinHeaders(accessToken),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      finalizeUploadRequest: { video, uploadToken, uploadedPartIds }
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('LinkedIn video finalizeUpload failed:', errorText);
-    throw new Error(`LinkedIn video upload could not be finalized: ${extractLinkedinErrorMessage(errorText)}`);
-  }
-};
-
 const registerVideoUpload = async ({ accessToken, memberUrn, videoUrl }) => {
   const videoBuffer = await fetchVideoBuffer(videoUrl);
 
-  const { video, uploadToken, uploadInstructions } = await initializeVideoUpload({
+  const { uploadUrl, asset } = await registerMediaUpload({
     accessToken,
     memberUrn,
-    fileSizeBytes: videoBuffer.byteLength
+    recipe: 'urn:li:digitalmediaRecipe:feedshare-video'
   });
 
-  const uploadedPartIds = await uploadVideoParts({ uploadInstructions, videoBuffer });
+  await uploadBinaryToLinkedin({
+    accessToken,
+    uploadUrl,
+    buffer: videoBuffer,
+    mimeType: 'video/mp4'
+  });
 
-  await finalizeVideoUpload({ accessToken, video, uploadToken, uploadedPartIds });
-
-  return video;
+  return asset;
 };
 
 export const createLinkedinPost = async ({
@@ -220,15 +139,16 @@ export const createLinkedinPost = async ({
     const dataImage = parseDataUrl(imageUrl);
 
     if (dataImage) {
-      const { uploadUrl, asset } = await registerImageUpload({
+      const { uploadUrl, asset } = await registerMediaUpload({
         accessToken,
-        memberUrn
+        memberUrn,
+        recipe: 'urn:li:digitalmediaRecipe:feedshare-image'
       });
 
-      await uploadImageToLinkedin({
+      await uploadBinaryToLinkedin({
         accessToken,
         uploadUrl,
-        imageBuffer: dataImage.buffer,
+        buffer: dataImage.buffer,
         mimeType: dataImage.mimeType
       });
 
