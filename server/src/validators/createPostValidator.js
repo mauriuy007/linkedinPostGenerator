@@ -9,7 +9,8 @@ const createPostValidator = Joi.object({
     imageUrl: Joi.string().uri().optional(),
     imageBase64: Joi.string().base64().optional(),
     imageMimeType: Joi.string().pattern(/^image\/[a-zA-Z0-9.+-]+$/).optional(),
-    imageName: Joi.string().max(255).optional()
+    imageName: Joi.string().max(255).optional(),
+    videoUrl: Joi.string().uri().optional()
 });
 
 export default createPostValidator;

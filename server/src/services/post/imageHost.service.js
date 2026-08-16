@@ -29,12 +29,16 @@ export const publishTemporaryImage = async imageUrl => {
 
   return {
     url: blob.url,
-    cleanup: async () => {
-      try {
-        await del(blob.url);
-      } catch (error) {
-        console.error('Failed to delete temporary Instagram upload blob:', error.message);
-      }
-    },
+    cleanup: () => deleteTemporaryMedia(blob.url),
   };
+};
+
+// Shared cleanup for any temporary Blob upload (Instagram images, LinkedIn
+// videos uploaded directly from the browser) once the platform has ingested it.
+export const deleteTemporaryMedia = async url => {
+  try {
+    await del(url);
+  } catch (error) {
+    console.error('Failed to delete temporary media blob:', error.message);
+  }
 };

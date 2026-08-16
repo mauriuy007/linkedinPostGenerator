@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { createPost } from '../api/posts.js';
+import { createPost, uploadLinkedinVideo } from '../api/posts.js';
 import { fileToBase64 } from '../utils/fileToBase64.js';
+
+const isVideoFile = (file) => Boolean(file?.type?.startsWith('video/'));
 
 export default function usePostGenerator(apiBaseUrl) {
   const [prompt, setPrompt] = useState('');
@@ -22,14 +24,31 @@ export default function usePostGenerator(apiBaseUrl) {
       return null;
     }
 
+    const isVideo = isVideoFile(selectedImage);
     let imageBase64;
+    let videoUrl;
 
-    if (selectedImage) {
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
+    if (selectedImage && isVideo) {
+      try {
+        setSubmitMessage('Uploading video...');
+        videoUrl = await uploadLinkedinVideo(apiBaseUrl, selectedImage);
+        setSubmitMessage('');
+      } catch (error) {
+        console.error('Error uploading the video:', error);
+        setSubmitMessage(error.message);
+        setIsSubmitting(false);
+        return null;
+      }
+    } else if (selectedImage) {
       try {
         imageBase64 = await fileToBase64(selectedImage);
       } catch (error) {
         console.error('Error reading the image:', error);
         setSubmitMessage("We couldn't process the selected image.");
+        setIsSubmitting(false);
         return null;
       }
     }
@@ -39,12 +58,10 @@ export default function usePostGenerator(apiBaseUrl) {
       content: trimmedPrompt,
       authorUsername: 'linkedin-user',
       imageBase64,
-      imageMimeType: selectedImage?.type,
-      imageName: selectedImage?.name,
+      imageMimeType: isVideo ? undefined : selectedImage?.type,
+      imageName: isVideo ? undefined : selectedImage?.name,
+      videoUrl,
     };
-
-    setIsSubmitting(true);
-    setSubmitMessage('');
 
     try {
       const post = await createPost(apiBaseUrl, payload);

@@ -1,7 +1,7 @@
 import { generatePost } from '../gemini/gemini.service.js';
 import { createLinkedinPost } from '../linkedin/post/linkedinPost.service.js';
 import { createInstagramPost } from '../meta/instagram/post/instagramPost.service.js';
-import { publishTemporaryImage } from './imageHost.service.js';
+import { publishTemporaryImage, deleteTemporaryMedia } from './imageHost.service.js';
 import { Post } from '../../models/Post.js';
 
 export const buildGeneratedPost = async ({
@@ -11,6 +11,7 @@ export const buildGeneratedPost = async ({
   imageBase64,
   imageMimeType,
   imageUrl,
+  videoUrl,
 }) => {
   const generatedContent = await generatePost({
     prompt:        content,
@@ -29,17 +30,28 @@ export const buildGeneratedPost = async ({
     authorUsername,
     content: generatedContent,
     imageUrl: resolvedImageUrl,
+    videoUrl,
   });
 };
 
 export const publishPostToLinkedin = async ({ accessToken, memberUrn, post }) => {
-  return createLinkedinPost({
-    accessToken,
-    memberUrn,
-    title:    post.title,
-    content:  post.content,
-    imageUrl: post.imageUrl,
-  });
+  try {
+    return await createLinkedinPost({
+      accessToken,
+      memberUrn,
+      title:    post.title,
+      content:  post.content,
+      imageUrl: post.imageUrl,
+      videoUrl: post.videoUrl,
+    });
+  } finally {
+    // The video was uploaded straight to Blob by the browser so our server
+    // could bypass the request body size limit; LinkedIn has its own copy
+    // now, so ours is no longer needed regardless of publish outcome.
+    if (post.videoUrl) {
+      await deleteTemporaryMedia(post.videoUrl);
+    }
+  }
 };
 
 export const publishPostToInstagram = async ({ accessToken, igUserId, post }) => {

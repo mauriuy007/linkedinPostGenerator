@@ -1,3 +1,35 @@
+import { put } from '@vercel/blob/client';
+
+export const uploadLinkedinVideo = async (apiBaseUrl, file) => {
+  let tokenResponse;
+
+  try {
+    tokenResponse = await fetch(`${apiBaseUrl}/api/posts/media/upload-url`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: file.name }),
+    });
+  } catch (error) {
+    console.error('Error requesting a video upload token:', error);
+    throw new Error('A network error occurred while preparing the video upload.');
+  }
+
+  const tokenData = await tokenResponse.json().catch(() => null);
+
+  if (!tokenResponse.ok || !tokenData?.clientToken) {
+    throw new Error(tokenData?.error ?? "We couldn't authorize the video upload.");
+  }
+
+  const blob = await put(file.name, file, {
+    access: 'public',
+    token: tokenData.clientToken,
+    contentType: file.type,
+  });
+
+  return blob.url;
+};
+
 export const createPost = async (apiBaseUrl, payload) => {
   let response;
 

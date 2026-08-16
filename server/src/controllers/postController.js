@@ -1,3 +1,4 @@
+import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 import createPostValidator from '../validators/createPostValidator.js';
 import { getLinkedinSessionFromRequest } from '../services/linkedin/auth/linkedinAuth.service.js';
 import { getInstagramSessionFromRequest } from '../services/meta/instagram/auth/instagramAuth.service.js';
@@ -59,6 +60,37 @@ export const publishPost = async (req, res) => {
     return res.status(500).json({
       error: err.message ?? 'An error occurred while publishing the post',
     });
+  }
+};
+
+// Issues a short-lived, scope-limited Vercel Blob token so the browser can
+// upload a video file directly to storage, bypassing the serverless
+// function's request body size limit. This is a plain authenticated JSON
+// endpoint (not Vercel's handleUpload two-phase protocol) specifically so
+// the frontend can call it with credentials: 'include' — the client and
+// server run on different origins in production, and handleUpload's own
+// internal fetch doesn't send cookies cross-origin.
+export const createMediaUploadToken = async (req, res) => {
+  try {
+    const session = getLinkedinSessionFromRequest(req);
+
+    if (!session) {
+      return res.status(401).json({ error: 'No LinkedIn session available to upload media' });
+    }
+
+    const { fileName } = req.body ?? {};
+
+    const clientToken = await generateClientTokenFromReadWriteToken({
+      pathname: `linkedin-uploads/${fileName || 'video.mp4'}`,
+      allowedContentTypes: ['video/mp4'],
+      maximumSizeInBytes: 500 * 1024 * 1024,
+      addRandomSuffix: true,
+    });
+
+    return res.status(200).json({ clientToken });
+  } catch (error) {
+    console.error('Blob upload token generation failed:', error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
