@@ -21,7 +21,7 @@ export const uploadLinkedinVideo = async (apiBaseUrl, file) => {
     throw new Error(tokenData?.error ?? "We couldn't authorize the video upload.");
   }
 
-  const blob = await put(file.name, file, {
+  const blob = await put(`linkedin-uploads/${file.name}`, file, {
     access: 'public',
     token: tokenData.clientToken,
     contentType: file.type,
