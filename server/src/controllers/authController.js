@@ -88,7 +88,7 @@ export const linkedinCallback = async (req, res) => {
     return res.redirect(
       buildFrontendRedirectUrl('/', {
         linkedin: 'error',
-        reason: 'Error interno durante la autenticacion con LinkedIn',
+        reason: err.message || 'Error interno durante la autenticacion con LinkedIn',
       })
     );
   }
@@ -175,7 +175,7 @@ export const instagramCallback = async (req, res) => {
     return res.redirect(
       buildInstagramFrontendRedirectUrl('/', {
         instagram: 'error',
-        reason: 'Error interno durante la autenticacion con Instagram',
+        reason: err.message || 'Error interno durante la autenticacion con Instagram',
       })
     );
   }
