@@ -33,6 +33,8 @@ export default function useSocialAuth(platform, { apiBaseUrl, onConnected, onErr
     const currentUrl = new URL(window.location.href);
     const status = currentUrl.searchParams.get(config.statusParam);
 
+    console.log(`[auth:${platform}] redirect effect ran, status param =`, status, 'full URL:', currentUrl.href);
+
     if (!status) {
       return;
     }
@@ -44,6 +46,7 @@ export default function useSocialAuth(platform, { apiBaseUrl, onConnected, onErr
     if (status === 'ok') {
       const nextProfile = { name: name ?? config.defaultName, picture: picture ?? '' };
       setProfile(nextProfile);
+      console.log(`[auth:${platform}] calling onConnected with source=redirect`);
       onConnected?.(nextProfile, { source: 'redirect', name });
     }
 
@@ -62,9 +65,13 @@ export default function useSocialAuth(platform, { apiBaseUrl, onConnected, onErr
   }, []);
 
   useEffect(() => {
+    console.log(`[auth:${platform}] session sync effect started`);
+
     const sync = async () => {
       try {
         const data = await fetchProfile(apiBaseUrl, config.mePath);
+
+        console.log(`[auth:${platform}] session sync response:`, data);
 
         if (!data) {
           return;
@@ -72,6 +79,7 @@ export default function useSocialAuth(platform, { apiBaseUrl, onConnected, onErr
 
         const nextProfile = config.parseProfile(data);
         setProfile(nextProfile);
+        console.log(`[auth:${platform}] calling onConnected with source=session`);
         onConnected?.(nextProfile, { source: 'session' });
       } catch (error) {
         console.error(`Couldn't retrieve ${config.label} profile:`, error);

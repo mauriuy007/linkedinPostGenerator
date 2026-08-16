@@ -21,6 +21,7 @@ export default function App() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
   const platformLabel = getPlatformLabel(selectedPlatform);
+  console.log(`[app] render, view=${view}, selectedPlatform=${selectedPlatform}`);
 
   // A user can hold a valid session for more than one platform at once, so
   // on mount both useSocialAuth instances race to sync their own cookie and
@@ -33,9 +34,11 @@ export default function App() {
 
   const handleAuthConnected = (platformId) => (profile, { source, name }) => {
     if (source !== 'redirect' && hasClaimedInitialPlatformRef.current) {
+      console.log(`[app] SKIPPING onConnected for ${platformId} (source=${source}, already claimed)`);
       return;
     }
 
+    console.log(`[app] ACCEPTING onConnected for ${platformId} (source=${source}) — selecting it`);
     hasClaimedInitialPlatformRef.current = true;
     setSelectedPlatform(platformId);
     setView('create');
@@ -98,6 +101,7 @@ export default function App() {
   };
 
   const handlePlatformSelection = (platform) => {
+    console.log(`[app] handlePlatformSelection called with:`, platform);
     setSelectedPlatform(platform);
     setPlatformMessage('');
 
@@ -115,6 +119,7 @@ export default function App() {
   };
 
   const handleGeneratePost = async () => {
+    console.log(`[app] handleGeneratePost called, selectedPlatform =`, selectedPlatform);
     postPub.resetPublishMessage();
     const post = await postGen.generatePost();
 
