@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import CreateView from '../components/create/CreateView.jsx';
 import LandingView from '../components/landing/LandingView.jsx';
 import LoadingOverlay from '../components/shared/LoadingOverlay.jsx';
@@ -22,7 +22,21 @@ export default function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
   const platformLabel = getPlatformLabel(selectedPlatform);
 
+  // A user can hold a valid session for more than one platform at once, so
+  // on mount both useSocialAuth instances race to sync their own cookie and
+  // claim the initial view. An explicit OAuth redirect (the platform the
+  // user just actually logged into) must always win over a passive "I also
+  // happen to have a valid cookie" background sync from the other platform,
+  // and once either has claimed the initial selection the other shouldn't
+  // silently override it later.
+  const hasClaimedInitialPlatformRef = useRef(false);
+
   const handleAuthConnected = (platformId) => (profile, { source, name }) => {
+    if (source !== 'redirect' && hasClaimedInitialPlatformRef.current) {
+      return;
+    }
+
+    hasClaimedInitialPlatformRef.current = true;
     setSelectedPlatform(platformId);
     setView('create');
 

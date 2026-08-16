@@ -64,8 +64,20 @@ export const createPost = async (apiBaseUrl, payload) => {
   return data?.post ?? null;
 };
 
+const PUBLISH_ENDPOINTS = {
+  linkedin: '/api/posts/publish',
+  instagram: '/api/posts/publish/instagram',
+};
+
 export const publishPost = async (apiBaseUrl, { platform, platformLabel, post }) => {
-  const endpoint = platform === 'instagram' ? '/api/posts/publish/instagram' : '/api/posts/publish';
+  const endpoint = PUBLISH_ENDPOINTS[platform];
+
+  if (!endpoint) {
+    // Never silently fall back to another platform's endpoint — that's how
+    // a post meant for Instagram ends up published to LinkedIn instead.
+    throw new Error(`Unknown platform "${platform}" — refusing to guess where to publish.`);
+  }
+
   let response;
 
   try {
