@@ -31,6 +31,10 @@ export default function PostCard({
         <img className="previewPost__image" src={post.imageUrl} alt={post.title ?? 'Post image'} />
       ) : null}
 
+      {post.videoUrl ? (
+        <video className="previewPost__video" src={post.videoUrl} controls playsInline />
+      ) : null}
+
       <div className="previewPost__content">
         {formatPostContent(post.content ?? '').map(({ key, text }) => (
           <p className="previewPost__paragraph" key={key}>{text}</p>
