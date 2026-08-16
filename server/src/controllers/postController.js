@@ -85,6 +85,11 @@ export const createMediaUploadToken = async (req, res) => {
       allowedContentTypes: ['video/mp4'],
       maximumSizeInBytes: 500 * 1024 * 1024,
       addRandomSuffix: true,
+      // The SDK defaults to a 30s validity window, which is meant for small
+      // files. A large video can easily take longer than that to upload, so
+      // the token expires mid-transfer. Give it enough headroom for a slow
+      // connection uploading a large file.
+      validUntil: Date.now() + 30 * 60 * 1000,
     });
 
     return res.status(200).json({ clientToken });
