@@ -717,6 +717,23 @@ body { min-height: 100vh; }
   line-height: 1.65;
 }
 
+.create__disconnect {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: var(--create-accent);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  letter-spacing: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.create__disconnect:hover { color: var(--create-accent-2); }
+
 .create__panel {
   width: min(100%, 760px);
 }

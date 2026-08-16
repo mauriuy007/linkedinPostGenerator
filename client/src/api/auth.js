@@ -7,3 +7,7 @@ export const fetchProfile = async (apiBaseUrl, path) => {
 
   return response.json();
 };
+
+export const logout = async (apiBaseUrl, path) => {
+  await fetch(`${apiBaseUrl}${path}`, { method: 'POST', credentials: 'include' });
+};

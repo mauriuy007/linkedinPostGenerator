@@ -109,6 +109,11 @@ export const linkedinMe = (req, res) => {
   });
 };
 
+export const linkedinLogout = (req, res) => {
+  res.setHeader('Set-Cookie', clearSessionCookieHeaders(req));
+  return res.status(200).json({ ok: true });
+};
+
 export const instagramLogin = async (req, res) => {
   try {
     const state    = generateInstagramOAuthState();
@@ -179,6 +184,11 @@ export const instagramCallback = async (req, res) => {
       })
     );
   }
+};
+
+export const instagramLogout = (req, res) => {
+  res.setHeader('Set-Cookie', clearInstagramSessionCookieHeaders(req));
+  return res.status(200).json({ ok: true });
 };
 
 export const instagramMe = (req, res) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchProfile } from '../api/auth.js';
+import { fetchProfile, logout as logoutRequest } from '../api/auth.js';
 
 const CONFIG = {
   linkedin: {
@@ -7,6 +7,7 @@ const CONFIG = {
     idParam: 'linkedinId',
     loginPath: '/api/auth/linkedin',
     mePath: '/api/auth/linkedin/me',
+    logoutPath: '/api/auth/linkedin/logout',
     label: 'LinkedIn',
     defaultName: 'LinkedIn User',
     parseProfile: (data) => ({ name: data?.name ?? 'LinkedIn User', picture: data?.picture ?? '' }),
@@ -16,6 +17,7 @@ const CONFIG = {
     idParam: 'instagramId',
     loginPath: '/api/auth/instagram',
     mePath: '/api/auth/instagram/me',
+    logoutPath: '/api/auth/instagram/logout',
     label: 'Instagram',
     defaultName: 'Instagram User',
     parseProfile: (data) => ({ name: data?.username ?? 'Instagram User', picture: '' }),
@@ -94,5 +96,10 @@ export default function useSocialAuth(platform, { apiBaseUrl, onConnected, onErr
     window.location.assign(`${apiBaseUrl}${config.loginPath}`);
   };
 
-  return { profile, login, label: config.label };
+  const logout = async () => {
+    await logoutRequest(apiBaseUrl, config.logoutPath);
+    setProfile(null);
+  };
+
+  return { profile, login, logout, label: config.label };
 }

@@ -100,6 +100,18 @@ export default function App() {
     postPub.resetPublishMessage();
   };
 
+  const handleDisconnect = async () => {
+    const activeAuth = selectedPlatform === 'instagram' ? instagramAuth : linkedinAuth;
+    await activeAuth.logout();
+    setView('landing');
+    setAuthMessage('');
+    setPlatformMessage('');
+    postGen.setSubmitMessage('');
+    postGen.resetGeneratedPost();
+    setIsPreviewOpen(false);
+    postPub.resetPublishMessage();
+  };
+
   const handlePlatformSelection = (platform) => {
     console.log(`[app] handlePlatformSelection called with:`, platform);
     setSelectedPlatform(platform);
@@ -152,6 +164,7 @@ export default function App() {
             submitMessage={postGen.submitMessage}
             isSubmitting={postGen.isSubmitting}
             onBack={handleBackToPlatforms}
+            onDisconnect={handleDisconnect}
             onGenerate={handleGeneratePost}
             onImageChange={(event) => postGen.setSelectedImage(event.target.files?.[0] ?? null)}
             onPromptChange={(event) => postGen.setPrompt(event.target.value)}

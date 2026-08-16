@@ -10,6 +10,7 @@ export default function CreateView({
   platformLabel = 'LinkedIn',
   requiresImage = false,
   onBack,
+  onDisconnect,
   onGenerate,
   onImageChange,
   onPromptChange,
@@ -22,6 +23,10 @@ export default function CreateView({
         <p className="create__text">
           Upload an image and add context, then generate a post ready for
           {' '}{platformLabel}.
+          {' '}
+          <button className="create__disconnect" type="button" onClick={onDisconnect}>
+            Not you? Log out of {platformLabel}
+          </button>
         </p>
         {authMessage ? <p className="app__notice app__notice--success">{authMessage}</p> : null}
         {submitMessage ? <p className="app__notice app__notice--info">{submitMessage}</p> : null}
