@@ -7,7 +7,7 @@ Auto Post is a multi-platform social media post generator. It is **not** LinkedI
 Supported destinations:
 
 - **LinkedIn** — fully working (OAuth login + publish).
-- **Instagram** — 90% finished, currently with an internal related to the access of the business account of Facebook/Instagram that is needed for the integration of Facebook api
+- **Instagram** — 90% finished, currently with an internal issue related to the access of the business account of Facebook/Instagram that is needed for the integration of Facebook api
 - **TikTok** — shown in the platform selector as "Coming soon"; not implemented yet.
 
 The app is split into:
